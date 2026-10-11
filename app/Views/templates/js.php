@@ -1,6 +1,6 @@
 <?php
 // Update this when you make changes to JS files
-$assetVersion = '1.0.9';
+$assetVersion = '1.0.10';
 ?>
 <!--   Core JS Files   -->
 <script src="<?= base_url('assets/js/core/jquery-3.5.1.min.js?v=' . $assetVersion) ?>"></script>
