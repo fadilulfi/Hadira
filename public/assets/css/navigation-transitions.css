@@ -7,6 +7,15 @@
  * Desktop shell: a persistent sidebar column and a separately growing content
  * column. On mobile, preserve Material Dashboard's existing off-canvas drawer.
  */
+/* Material Dashboard expects its shell to be .wrapper; allow it to grow with page content. */
+.hadira-app-shell.wrapper {
+    position: relative;
+    top: 0;
+    height: auto;
+    width: 100%;
+    min-height: 100vh;
+}
+
 .hadira-app-shell {
     display: block;
     width: 100%;
@@ -91,30 +100,17 @@
     }
 }
 
-.main-panel > #hadira-page-content {
-    /*
-     * Keep a real layout box around the swapped page. display: contents can
-     * make content-height and footer placement fragile when the node is
-     * replaced dynamically.
-     */
-    display: flow-root;
-    width: 100%;
-    min-width: 0;
-}
-
-.main-panel > #hadira-page-content > .content {
-    margin-top: 70px;
-    padding: 30px 15px;
-    min-height: calc(100vh - 123px);
+/* The navigation target is the actual .content node, directly inside .main-panel. */
+.main-panel > #hadira-page-content.content {
     transition: opacity 140ms ease;
 }
 
-#hadira-page-content.is-loading > .content {
+#hadira-page-content.is-loading {
     opacity: 0.58;
     pointer-events: none;
 }
 
-#hadira-page-content.is-entering > .content {
+#hadira-page-content.is-entering {
     animation: hadira-content-enter 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
