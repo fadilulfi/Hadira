@@ -171,9 +171,9 @@ $(document).on('click', '.checkbox-table', function () {
 /**
  * Persistent-shell navigation for HADIRA.
  *
- * Only ordinary same-origin navigation links in the sidebar are enhanced.
- * Page-specific-script views fall back to normal navigation so their scripts
- * aren't re-executed inside a long-lived JavaScript runtime.
+ * Ordinary same-origin sidebar links use enhanced navigation. Inline page
+ * scripts run in scoped lifetimes; only pages marked as lifecycle-sensitive
+ * use normal browser navigation.
  */
 (function () {
   'use strict';
@@ -494,7 +494,11 @@ $(document).on('click', '.checkbox-table', function () {
         return;
       }
 
-      script.textContent = wrapInlinePageScript(source.textContent || '', handlerNames || new Set());
+      var inlineType = (source.getAttribute('type') || '').trim().toLowerCase();
+      var scopedTypes = ['', 'text/javascript', 'application/javascript', 'text/ecmascript', 'application/ecmascript'];
+      script.textContent = scopedTypes.indexOf(inlineType) !== -1
+        ? wrapInlinePageScript(source.textContent || '', handlerNames || new Set())
+        : (source.textContent || '');
       scriptContainer.appendChild(script);
       resolve();
     });
@@ -623,7 +627,7 @@ $(document).on('click', '.checkbox-table', function () {
     var link = target.closest('.sidebar a[data-hadira-nav][href]');
     if (!link) return;
 
-    // Don't keep a script-heavy source page alive during partial navigation.
+    // Views that require a fresh document keep native browser navigation.
     if (document.body.getAttribute('data-hadira-full-navigation') === 'true') return;
 
     var navigationUrl = isPlainNavigationClick(event, link);
