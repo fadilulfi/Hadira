@@ -125,6 +125,7 @@ $(document).on('click', '.checkbox-table', function () {
   var pageIntervals = new Set();
   var navigationController = null;
   var navigationSequence = 0;
+  var currentPageUrl = window.location.href;
 
   var progress = document.getElementById('hadira-navigation-progress');
   if (!progress) {
@@ -259,7 +260,7 @@ $(document).on('click', '.checkbox-table', function () {
     if (url.origin !== window.location.origin || !/^https?:$/.test(url.protocol)) return false;
     if (url.pathname.replace(/\/+$/, '') === window.location.pathname.replace(/\/+$/, '') &&
         url.search === window.location.search && url.hash === window.location.hash) return false;
-    if (/\/logout\/?$|\/(download|print)(\/|$)/i.test(url.pathname)) return false;
+    if (/\/logout\/?$|\/(download|print)(\/|$)|\/backup\/(db|photos)\/backup(\/|$)/i.test(url.pathname)) return false;
     return url;
   }
 
@@ -445,6 +446,7 @@ $(document).on('click', '.checkbox-table', function () {
       }
 
       var finalUrl = new URL(response.url || requestedUrl.href, window.location.href);
+      if (!finalUrl.hash && requestedUrl.hash) finalUrl.hash = requestedUrl.hash;
       if (finalUrl.origin !== window.location.origin) {
         window.location.assign(finalUrl.href);
         return;
@@ -477,6 +479,7 @@ $(document).on('click', '.checkbox-table', function () {
       if (pushHistory) {
         window.history.pushState({ hadiraNavigation: true }, '', finalUrl.href);
       }
+      currentPageUrl = finalUrl.href;
 
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       beginPage();
@@ -510,7 +513,15 @@ $(document).on('click', '.checkbox-table', function () {
   });
 
   window.addEventListener('popstate', function () {
-    navigate(window.location.href, false);
+    var targetUrl = new URL(window.location.href);
+    var currentUrl = new URL(currentPageUrl, window.location.href);
+    if (targetUrl.origin === currentUrl.origin &&
+        targetUrl.pathname === currentUrl.pathname &&
+        targetUrl.search === currentUrl.search) {
+      currentPageUrl = targetUrl.href;
+      return;
+    }
+    navigate(targetUrl.href, false);
   });
 
   window.HadiraNavigation = {
