@@ -1,3 +1,8 @@
+<?php
+$pageContent = (string) $this->renderSection("content");
+$pageScripts = (string) $this->renderSection("scripts");
+$pageHasScripts = preg_match('/<script\\b/i', $pageContent . $pageScripts) === 1;
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -7,6 +12,7 @@
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <meta name="description" content="Absensi Sekolah QR Code - Sistem absensi modern berbasis QR Code">
    <meta name="theme-color" content="#9c27b0">
+   <meta name="view-transition" content="same-origin">
    <?= csrf_meta(); ?>
 
    <?= $this->include("templates/css") ?>
@@ -57,7 +63,7 @@
    </style>
 </head>
 
-<body>
+<body data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
    <div class="bg bg-image"></div>
 
    <!-- Navbar -->
@@ -75,11 +81,11 @@
    </nav>
    <!-- End Navbar -->
 
-   <?= $this->renderSection("content") ?>
+   <?= $pageContent ?>
 
    <?= $this->include("templates/js") ?>
 
-   <script>
+   <script data-turbo-eval="false">
       var BaseConfig = {
          baseURL: '<?= base_url(); ?>',
          csrfTokenName: '<?= csrf_token() ?>',
@@ -88,7 +94,7 @@
       };
    </script>
 
-    <?= $this->renderSection("scripts") ?>
+   <?= $pageScripts ?>
 </body>
 
 </html>
