@@ -503,7 +503,7 @@ $(document).on('click', '.checkbox-table', function () {
       var destinationHasPageScripts = nextDocument.body &&
         nextDocument.body.getAttribute('data-hadira-page-scripted') === 'true';
 
-      var nextPageBody = nextPage && nextPage.querySelector('.content');
+      var nextPageBody = nextPage && nextPage.classList.contains('content') ? nextPage : (nextPage && nextPage.querySelector('.content'));
 
       if (!response.ok || !nextPage || !nextScriptsContainer || !nextPageBody ||
           destinationHasPageScripts || scriptNeedsFullLoad(sourceScripts)) {
