@@ -16,16 +16,10 @@
  */
 
 (function() {
-  isWindows = navigator.platform.indexOf('Win') > -1 ? true : false;
-
-  if (isWindows) {
-    // if we are on windows OS we activate the perfectScrollbar function
-    $('.sidebar .sidebar-wrapper, .main-panel, .main').perfectScrollbar();
-
-    $('html').addClass('perfect-scrollbar-on');
-  } else {
-    $('html').addClass('perfect-scrollbar-off');
-  }
+  // HADIRA uses native browser scrolling for both the document and the sidebar.
+  // Do not initialize PerfectScrollbar: its overflow:hidden wrapper conflicts
+  // with the Flexbox + sticky app shell and the persistent content container.
+  $('html').removeClass('perfect-scrollbar-on').addClass('perfect-scrollbar-off');
 })();
 
 

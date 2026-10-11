@@ -1,29 +1,3 @@
-/*
- * HADIRA uses native document scrolling for the main content area.
- * The Material Dashboard starter initializes PerfectScrollbar on .main-panel,
- * which conflicts with the Flexbox shell and clips/reflows the page when
- * content height changes. Keep its separate scrollbar on .sidebar-wrapper,
- * but remove the custom scrollbar from the main panel.
- */
-(function useNativeMainPanelScroll() {
-  var panel = document.querySelector('.main-panel');
-  if (!panel) return;
-
-  if (window.jQuery && window.jQuery.fn && window.jQuery.fn.perfectScrollbar) {
-    try {
-      window.jQuery(panel).perfectScrollbar('destroy');
-    } catch (error) {
-      // Continue with native scrolling if the plugin instance is unavailable.
-    }
-  }
-
-  panel.classList.remove('ps-container', 'ps-active-x', 'ps-active-y', 'ps-in-scrolling', 'ps-x', 'ps-y');
-  Array.prototype.forEach.call(
-    panel.querySelectorAll(':scope > .ps-scrollbar-x-rail, :scope > .ps-scrollbar-y-rail'),
-    function (rail) { rail.remove(); }
-  );
-})();
-
 function setAjaxData(object = null) {
   var data = {};
   data[BaseConfig.csrfTokenName] = $('meta[name="X-CSRF-TOKEN"]').attr('content');
