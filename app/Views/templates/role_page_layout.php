@@ -37,7 +37,7 @@ if (preg_match($pageRootPattern, $pageContent) === 1) {
 
 <?= $this->include("templates/head") ?>
 
-<body data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
+<body class="hadira-shell-page" data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
    <div class="wrapper hadira-app-shell hadira-role-shell">
       <?= $this->include("templates/sidebar") ?>
       <div class="main-panel">
