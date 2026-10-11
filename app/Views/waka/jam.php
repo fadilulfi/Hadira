@@ -1,0 +1,17 @@
+<?= $this->extend('templates/admin_page_layout') ?>
+<?= $this->section('content') ?>
+<div class="content"><div class="container-fluid">
+<div class="d-flex justify-content-between align-items-center mb-3 no-print"><div><h3 class="mb-0">Jam Pelajaran</h3><small class="text-muted">Panel baru</small></div></div>
+
+<style>
+  .stat-card .display-4{font-size:2rem;font-weight:700}
+  .table-responsive{overflow-x:auto}
+  @media print{.no-print{display:none!important}.sidebar,.navbar,.footer{display:none!important}.main-panel{width:100%!important}.content{margin:0!important}}
+</style>
+
+
+<?php if(session('success')): ?><div class="alert alert-success no-print"><?= esc(session('success')) ?></div><?php endif; ?><?php if(session('error')): ?><div class="alert alert-danger no-print"><?= esc(session('error')) ?></div><?php endif; ?>
+<div class="row"><div class="col-md-5"><div class="card"><div class="card-header"><h4 class="card-title"><?= $editRow ? 'Edit Jam Pelajaran' : 'Tambah Jam Pelajaran' ?></h4></div><div class="card-body"><form method="post" action="<?= base_url('waka/jam/simpan') ?>"><?= csrf_field() ?><input type="hidden" name="id_jam" value="<?= esc($editRow['id_jam'] ?? "") ?>"><div class="form-group"><label>Nama Jam</label><input class="form-control" name="nama_jam" placeholder="Contoh: 3-4" value="<?= esc($editRow['nama_jam'] ?? "") ?>" required></div><div class="row"><div class="col-md-6"><label>Mulai</label><input class="form-control" type="time" name="jam_mulai" value="<?= esc($editRow['jam_mulai'] ?? "") ?>" required></div><div class="col-md-6"><label>Selesai</label><input class="form-control" type="time" name="jam_selesai" value="<?= esc($editRow['jam_selesai'] ?? "") ?>" required></div></div><div class="form-group mt-3"><label>Urutan</label><input class="form-control" type="number" min="1" name="urutan" value="<?= esc($editRow['urutan'] ?? "") ?>" required></div><div class="form-group"><label>Status</label><select class="form-control" name="aktif"><option value="1" <?= ($editRow['aktif'] ?? 1) == 1 ? 'selected' : '' ?>>Aktif</option><option value="0" <?= ($editRow['aktif'] ?? 1) == 0 ? 'selected' : '' ?>>Nonaktif</option></select></div><button class="btn btn-info btn-block">Simpan</button><?php if($editRow): ?><a class="btn btn-secondary btn-block" href="<?= base_url('waka/jam') ?>">Batal Edit</a><?php endif; ?></form></div></div></div><div class="col-md-7"><div class="card"><div class="card-header"><h4 class="card-title">Daftar Jam Pelajaran</h4></div><div class="card-body"><div class="table-responsive"><table class="table"><thead><tr><th>Urutan</th><th>Nama</th><th>Waktu</th><th>Status</th><th>Aksi</th></tr></thead><tbody><?php foreach($rows as $r): ?><tr><td><?= $r['urutan'] ?></td><td><?= esc($r['nama_jam']) ?></td><td><?= esc($r['jam_mulai']) ?> - <?= esc($r['jam_selesai']) ?></td><td><span class="badge badge-<?= $r['aktif']?'success':'secondary' ?>"><?= $r['aktif']?'Aktif':'Nonaktif' ?></span></td><td><a class="btn btn-info btn-sm" href="<?= base_url('waka/jam?edit='.$r['id_jam']) ?>">Edit</a> <a class="btn btn-sm btn-<?= $r['aktif']?'warning':'success' ?>" href="<?= base_url('waka/jam/toggle/'.$r['id_jam']) ?>"><?= $r['aktif']?'Nonaktifkan':'Aktifkan' ?></a></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="5" class="text-center">Belum ada jam.</td></tr><?php endif; ?></tbody></table></div></div></div></div></div>
+
+</div></div>
+<?= $this->endSection() ?>

@@ -1,0 +1,199 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\PresensiInterface;
+use CodeIgniter\I18n\Time;
+use CodeIgniter\Model;
+use App\Libraries\enums\Kehadiran;
+
+class PresensiGuruModel extends Model implements PresensiInterface
+{
+   protected $primaryKey = 'id_presensi';
+
+   protected $allowedFields = [
+      'id_guru',
+      'tanggal',
+      'jam_masuk',
+      'jam_keluar',
+      'id_kehadiran',
+      'keterangan'
+   ];
+
+   protected $table = 'tb_presensi_guru';
+
+   public function cekAbsen(string|int $id, string|Time $date)
+   {
+      $result = $this->where(['id_guru' => $id, 'tanggal' => $date])->first();
+
+      if (empty($result))
+         return false;
+
+      return $result[$this->primaryKey];
+   }
+
+   public function absenMasuk(string $id, $date, $time)
+   {
+      $this->save([
+         'id_guru' => $id,
+         'tanggal' => $date,
+         'jam_masuk' => $time,
+         // 'jam_keluar' => '',
+         'id_kehadiran' => Kehadiran::Hadir->value,
+         'keterangan' => ''
+      ]);
+   }
+
+   public function absenKeluar(string $id, $time)
+   {
+      $this->update($id, [
+         'jam_keluar' => $time,
+         'keterangan' => ''
+      ]);
+   }
+
+   public function getPresensiByIdGuruTanggal($idGuru, $date)
+   {
+      return $this->where(['id_guru' => $idGuru, 'tanggal' => $date])->first();
+   }
+
+   public function getPresensiById(string $idPresensi)
+   {
+      return $this->where([$this->primaryKey => $idPresensi])->first();
+   }
+
+   public function getPresensiByTanggal($tanggal): array
+   {
+      return $this->db->table('tb_guru')
+         ->select('*')
+         ->join(
+            "(SELECT id_presensi, id_guru AS id_guru_presensi, tanggal, jam_masuk, jam_keluar, id_kehadiran, keterangan FROM tb_presensi_guru) tb_presensi_guru",
+            "tb_guru.id_guru = tb_presensi_guru.id_guru_presensi AND tb_presensi_guru.tanggal = '$tanggal'",
+            'left'
+         )
+         ->join(
+            'tb_kehadiran',
+            'tb_presensi_guru.id_kehadiran = tb_kehadiran.id_kehadiran',
+            'left'
+         )
+         ->orderBy("nama_guru")
+         ->get()
+         ->getResultArray();
+   }
+
+   public function getPresensiByKehadiran(string $idKehadiran, $tanggal)
+   {
+      $this->join(
+         'tb_guru',
+         "tb_presensi_guru.id_guru = tb_guru.id_guru AND tb_presensi_guru.tanggal = '$tanggal'",
+         'right'
+      );
+
+      if ($idKehadiran == '4') {
+         $result = $this->findAll();
+
+         $schoolConfigurations = new \Config\School();
+         $generalSettings = $schoolConfigurations::$generalSettings;
+         $jamPulangStandard = $generalSettings->jam_pulang_standard ?? '14:00:00';
+         
+         $now = Time::now();
+         $nowTime = $now->toTimeString();
+         $today = $now->toDateString();
+         $isAfterSchool = ($today > $tanggal) || ($today == $tanggal && $nowTime > $jamPulangStandard);
+
+         $filteredResult = [];
+
+         foreach ($result as $value) {
+            if (!in_array($value['id_kehadiran'], ['1', '2', '3'])) {
+               $value['is_alfa_final'] = $isAfterSchool;
+               array_push($filteredResult, $value);
+            }
+         }
+
+         return $filteredResult;
+      } else {
+         $this->where(['tb_presensi_guru.id_kehadiran' => $idKehadiran]);
+         return $this->findAll();
+      }
+   }
+
+   /**
+    * Get attendance trend for last N days
+    * @return array ['hadir' => [], 'sakit' => [], 'izin' => [], 'alfa' => [], 'belum_absen' => []]
+    */
+   public function getAttendanceTrend(int $days = 7): array
+   {
+      $now = Time::now();
+      $result = ['hadir' => [], 'sakit' => [], 'izin' => [], 'alfa' => [], 'belum_absen' => []];
+
+      $schoolConfigurations = new \Config\School();
+      $generalSettings = $schoolConfigurations::$generalSettings;
+      $jamPulangStandard = $generalSettings->jam_pulang_standard ?? '14:00:00';
+      $holidayModel = new \App\Models\HariLiburModel();
+
+      for ($i = $days - 1; $i >= 0; $i--) {
+         $date = $now->subDays($i)->toDateString();
+
+         if ($holidayModel->isHoliday($date)) {
+            $result['hadir'][] = 0;
+            $result['sakit'][] = 0;
+            $result['izin'][] = 0;
+            $result['alfa'][] = 0;
+            $result['belum_absen'][] = 0;
+            continue;
+         }
+
+         $isToday = ($date == $now->toDateString());
+         $isAfterSchool = (date('Y-m-d') > $date) || ($isToday && $now->toTimeString() > $jamPulangStandard);
+
+         $result['hadir'][] = count($this->getPresensiByKehadiran('1', $date));
+         $result['sakit'][] = count($this->getPresensiByKehadiran('2', $date));
+         $result['izin'][] = count($this->getPresensiByKehadiran('3', $date));
+         
+         $notPresentCount = count($this->getPresensiByKehadiran('4', $date));
+         
+         if ($isAfterSchool) {
+            $result['alfa'][] = $notPresentCount;
+            $result['belum_absen'][] = 0;
+         } else {
+            $result['alfa'][] = 0;
+            $result['belum_absen'][] = $notPresentCount;
+         }
+      }
+
+      return $result;
+   }
+
+   public function updatePresensi(
+      $idPresensi,
+      $idGuru,
+      $tanggal,
+      $idKehadiran,
+      $jamMasuk,
+      $jamKeluar,
+      $keterangan
+   ) {
+      $presensi = $this->getPresensiByIdGuruTanggal($idGuru, $tanggal);
+
+      $data = [
+         'id_guru' => $idGuru,
+         'tanggal' => $tanggal,
+         'id_kehadiran' => $idKehadiran,
+         'keterangan' => $keterangan ?? $presensi['keterangan'] ?? ''
+      ];
+
+      if ($idPresensi != null) {
+         $data[$this->primaryKey] = $idPresensi;
+      }
+
+      if ($jamMasuk != null) {
+         $data['jam_masuk'] = $jamMasuk;
+      }
+
+      if ($jamKeluar != null) {
+         $data['jam_keluar'] = $jamKeluar;
+      }
+
+      return $this->save($data);
+   }
+}
