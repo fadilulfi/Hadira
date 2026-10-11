@@ -263,7 +263,7 @@ $(document).on('click', '.checkbox-table', function () {
     return url;
   }
 
-  function copyPageStyles(nextDocument, targetUrl) {
+  function copyPageStyles(nextDocument, targetUrl, sequence) {
     var newNodes = Array.prototype.slice.call(
       nextDocument.head.querySelectorAll('style, link[rel~="stylesheet"]')
     ).filter(function (node) {
@@ -274,7 +274,7 @@ $(document).on('click', '.checkbox-table', function () {
     newNodes.forEach(function (source) {
       var clone = source.cloneNode(true);
       clone.removeAttribute('data-hadira-page-style');
-      clone.setAttribute('data-hadira-pending-page-style', 'true');
+      clone.setAttribute('data-hadira-pending-page-style', String(sequence));
 
       if (clone.tagName === 'LINK') {
         var rawHref = source.getAttribute('href');
@@ -296,12 +296,20 @@ $(document).on('click', '.checkbox-table', function () {
     });
 
     return Promise.all(pending).then(function () {
+      var pendingSelector = '[data-hadira-pending-page-style="' + String(sequence) + '"]';
+      if (sequence !== navigationSequence) {
+        Array.prototype.forEach.call(document.head.querySelectorAll(pendingSelector), function (node) {
+          node.remove();
+        });
+        return;
+      }
+
       Array.prototype.forEach.call(
         document.head.querySelectorAll('[data-hadira-page-style]'),
         function (node) { node.remove(); }
       );
       Array.prototype.forEach.call(
-        document.head.querySelectorAll('[data-hadira-pending-page-style]'),
+        document.head.querySelectorAll(pendingSelector),
         function (node) {
           node.removeAttribute('data-hadira-pending-page-style');
           node.setAttribute('data-hadira-page-style', 'true');
@@ -316,13 +324,24 @@ $(document).on('click', '.checkbox-table', function () {
     if (current && next) current.setAttribute('content', next.getAttribute('content') || '');
   }
 
-  function updateActiveNavigation(context) {
+  function updateActiveNavigation(context, currentUrl) {
     Array.prototype.forEach.call(
       document.querySelectorAll('.sidebar a[data-hadira-nav][data-nav-context]'),
       function (link) {
         var linkContext = link.getAttribute('data-nav-context');
         var active = linkContext === context ||
           (linkContext === 'teacher-absensi-kelas' && context === 'teacher-absensi-kelas-form');
+
+        if (!context && currentUrl) {
+          try {
+            var target = new URL(link.href, window.location.href);
+            var current = new URL(currentUrl, window.location.href);
+            active = target.pathname.replace(/\/+$/, '') === current.pathname.replace(/\/+$/, '') &&
+              target.search === current.search;
+          } catch (error) {
+            active = false;
+          }
+        }
 
         var item = link.closest('.nav-item');
         if (item) item.classList.toggle('active', active);
@@ -431,7 +450,7 @@ $(document).on('click', '.checkbox-table', function () {
         return;
       }
 
-      await copyPageStyles(nextDocument, finalUrl.href);
+      await copyPageStyles(nextDocument, finalUrl.href, thisSequence);
       if (thisSequence !== navigationSequence) return;
 
       var pageTitle = nextPage.getAttribute('data-page-title') || nextDocument.title || 'HADIRA';
@@ -453,7 +472,7 @@ $(document).on('click', '.checkbox-table', function () {
       var navbarTitle = document.getElementById('hadira-page-title');
       if (navbarTitle) navbarTitle.textContent = pageTitle;
       copyCsrfMeta(nextDocument);
-      updateActiveNavigation(pageContext);
+      updateActiveNavigation(pageContext, finalUrl.href);
 
       if (pushHistory) {
         window.history.pushState({ hadiraNavigation: true }, '', finalUrl.href);
@@ -480,7 +499,7 @@ $(document).on('click', '.checkbox-table', function () {
   document.addEventListener('click', function (event) {
     var target = event.target;
     if (!target || typeof target.closest !== 'function') return;
-    var link = target.closest('.sidebar a[data-hadira-nav][href]');
+    var link = target.closest('.sidebar a[data-hadira-nav][href], #hadira-page-content a[href]');
     if (!link) return;
 
     var navigationUrl = isPlainNavigationClick(event, link);
