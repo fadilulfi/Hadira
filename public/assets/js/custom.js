@@ -108,129 +108,120 @@ $(document).on('click', '.checkbox-table', function () {
 });
 
 /**
- * Navigation polish for the server-rendered HADIRA pages.
- * Keep regular link navigation (and its auth/CSRF/redirect behavior), while
- * showing a small loading indicator and preserving sidebar scroll position.
+ * Persist sidebar UI across Turbo visits, but leave pages with page-specific
+ * JavaScript to normal browser navigation. This prevents stale timers,
+ * duplicate handlers and global lexical declarations from leaking between
+ * dynamically visited pages.
  */
 (function () {
   'use strict';
 
-  var sidebarScrollKey = 'hadira:sidebar-scroll-top';
-  var scrollSaveTimer = null;
-
-  function readSidebarScroll() {
+  function normalizedPath(link) {
     try {
-      return window.sessionStorage.getItem(sidebarScrollKey);
+      var url = new URL(link.href, window.location.href);
+      return url.origin + url.pathname.replace(/\\/+$/, '') + (url.search || '');
     } catch (error) {
-      return null;
+      return '';
     }
   }
 
-  function saveSidebarScroll() {
-    var wrapper = document.querySelector('.sidebar .sidebar-wrapper');
-    if (!wrapper) {
+  function rememberDestination(event) {
+    var url = event && event.detail && event.detail.url;
+    if (url) {
+      window.__hadiraTurboDestination = url.href || String(url);
+    }
+  }
+
+  function syncSidebar(incomingBody) {
+    var currentSidebar = document.getElementById('hadira-sidebar');
+    var nextSidebar = incomingBody.querySelector('#hadira-sidebar');
+    if (!currentSidebar || !nextSidebar) {
       return;
     }
 
-    try {
-      window.sessionStorage.setItem(sidebarScrollKey, String(wrapper.scrollTop || 0));
-    } catch (error) {
-      // Navigation remains usable if storage is unavailable.
-    }
-  }
-
-  function restoreSidebarScroll() {
-    var saved = readSidebarScroll();
-    var scrollTop = saved === null ? NaN : parseInt(saved, 10);
-    if (!Number.isFinite(scrollTop) || scrollTop < 0) {
-      return;
-    }
-
-    function applySavedPosition() {
-      var wrapper = document.querySelector('.sidebar .sidebar-wrapper');
-      if (wrapper) {
-        wrapper.scrollTop = scrollTop;
+    ['data-turbo', 'data-color', 'data-image'].forEach(function (attribute) {
+      var value = nextSidebar.getAttribute(attribute);
+      if (value === null) {
+        currentSidebar.removeAttribute(attribute);
+      } else {
+        currentSidebar.setAttribute(attribute, value);
       }
-    }
+    });
 
-    window.requestAnimationFrame(applySavedPosition);
-    window.setTimeout(applySavedPosition, 100);
-  }
+    var nextLinks = Array.from(nextSidebar.querySelectorAll('a[href]'));
+    currentSidebar.querySelectorAll('a[href]').forEach(function (link) {
+      var path = normalizedPath(link);
+      var matching = nextLinks.find(function (nextLink) {
+        return normalizedPath(nextLink) === path;
+      });
+      var oldItem = link.closest('li.nav-item');
+      var nextItem = matching && matching.closest('li.nav-item');
+      var isActive = !!(nextItem && nextItem.classList.contains('active'));
 
-  function createProgressIndicator() {
-    var progress = document.getElementById('hadira-navigation-progress');
-    if (progress) {
-      return progress;
-    }
-
-    progress = document.createElement('div');
-    progress.id = 'hadira-navigation-progress';
-    progress.setAttribute('aria-hidden', 'true');
-
-    var bar = document.createElement('span');
-    bar.className = 'hadira-navigation-progress__bar';
-    progress.appendChild(bar);
-    document.body.appendChild(progress);
-
-    return progress;
-  }
-
-  function shouldShowProgress(event, link) {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-      return false;
-    }
-
-    if (link.hasAttribute('download') || (link.target && link.target.toLowerCase() !== '_self')) {
-      return false;
-    }
-
-    var href = link.getAttribute('href');
-    if (!href || /^\s*javascript:/i.test(href)) {
-      return false;
-    }
-
-    var destination;
-    try {
-      destination = new URL(link.href, window.location.href);
-    } catch (error) {
-      return false;
-    }
-
-    if (destination.origin !== window.location.origin || !/^https?:$/.test(destination.protocol)) {
-      return false;
-    }
-
-    return destination.href !== window.location.href;
-  }
-
-  function initNavigationPolish() {
-    var wrapper = document.querySelector('.sidebar .sidebar-wrapper');
-    var progress = createProgressIndicator();
-
-    if (wrapper) {
-      wrapper.addEventListener('scroll', function () {
-        window.clearTimeout(scrollSaveTimer);
-        scrollSaveTimer = window.setTimeout(saveSidebarScroll, 100);
-      }, { passive: true });
-
-      restoreSidebarScroll();
-    }
-
-    document.addEventListener('click', function (event) {
-      var link = event.target.closest('.sidebar a[href]');
-      if (!link || !shouldShowProgress(event, link)) {
-        return;
+      if (oldItem) {
+        oldItem.classList.toggle('active', isActive);
       }
-
-      saveSidebarScroll();
-      progress.classList.add('is-visible');
+      if (matching && matching.hasAttribute('aria-current')) {
+        link.setAttribute('aria-current', matching.getAttribute('aria-current'));
+      } else {
+        link.removeAttribute('aria-current');
+      }
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initNavigationPolish, { once: true });
-  } else {
-    initNavigationPolish();
-  }
-})();
+  document.addEventListener('turbo:before-visit', rememberDestination);
+  document.addEventListener('turbo:visit', rememberDestination);
 
+  document.addEventListener('turbo:before-render', function (event) {
+    var incomingBody = event.detail && event.detail.newBody;
+    if (!incomingBody) {
+      return;
+    }
+
+    // JS-heavy views use full navigation so their existing scripts keep their
+    // normal one-page lifecycle rather than being executed in a long-lived JS realm.
+    if (incomingBody.getAttribute('data-hadira-page-scripted') === 'true') {
+      event.preventDefault();
+      var destination = window.__hadiraTurboDestination || window.location.href;
+      window.location.assign(destination);
+      return;
+    }
+
+    syncSidebar(incomingBody);
+
+    var defaultRender = event.detail.render;
+    if (typeof defaultRender === 'function') {
+      event.detail.render = function (currentBody, newBody) {
+        var reducedMotion = window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (!reducedMotion && typeof document.startViewTransition === 'function') {
+          var transition = document.startViewTransition(function () {
+            return defaultRender(currentBody, newBody);
+          });
+          return transition.updateCallbackDone;
+        }
+
+        return defaultRender(currentBody, newBody);
+      };
+    }
+  });
+
+  document.addEventListener('turbo:load', function () {
+    window.__hadiraTurboDestination = null;
+
+    // Refresh components bound to the newly rendered content without touching
+    // the persistent sidebar or changing form submission behavior.
+    if (window.jQuery && window.jQuery.fn.perfectScrollbar) {
+      var mainPanel = document.querySelector('.main-panel');
+      if (mainPanel) {
+        try {
+          window.jQuery(mainPanel).perfectScrollbar('update');
+          mainPanel.scrollTop = 0;
+        } catch (error) {
+          // No scrollbar instance on this browser/layout; native scrolling works.
+        }
+      }
+    }
+  });
+})();
