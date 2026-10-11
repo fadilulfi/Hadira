@@ -183,6 +183,7 @@ $(document).on('click', '.checkbox-table', function () {
   var navNamespace = '.hadiraPage';
   var activePageController = null;
   var pageIntervals = new Set();
+  var pageGlobalRestores = [];
   var navigationController = null;
   var navigationSequence = 0;
   var currentPageUrl = window.location.href;
@@ -267,6 +268,12 @@ $(document).on('click', '.checkbox-table', function () {
       nativeClearInterval(id);
     });
     pageIntervals.clear();
+
+    // Restore globals exposed by the previous page's inline event handlers.
+    while (pageGlobalRestores.length) {
+      var restorePageGlobal = pageGlobalRestores.pop();
+      try { restorePageGlobal(); } catch (error) {}
+    }
 
     if (window.jQuery) {
       window.jQuery(document).off(navNamespace);
@@ -427,7 +434,51 @@ $(document).on('click', '.checkbox-table', function () {
     });
   }
 
-  function runOneScript(source, scriptContainer, targetUrl) {
+
+  function collectInlineHandlerNames(pageRoot) {
+    var names = new Set();
+    if (!pageRoot) return names;
+
+    var nodes = [pageRoot];
+    Array.prototype.push.apply(nodes, pageRoot.querySelectorAll('*'));
+
+    nodes.forEach(function (node) {
+      Array.prototype.forEach.call(node.attributes || [], function (attribute) {
+        if (!/^on/i.test(attribute.name)) return;
+
+        var callPattern = /(?:^|[^\w$.])([A-Za-z_$][\w$]*)\s*\(/g;
+        var match;
+        while ((match = callPattern.exec(attribute.value || '')) !== null) {
+          names.add(match[1]);
+        }
+      });
+    });
+
+    return names;
+  }
+
+  function wrapInlinePageScript(sourceText, handlerNames) {
+    var declaredNames = new Set();
+    var declarationPattern = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\b/g;
+    var match;
+
+    while ((match = declarationPattern.exec(sourceText)) !== null) {
+      declaredNames.add(match[1] || match[2]);
+    }
+
+    var exports = [];
+    handlerNames.forEach(function (name) {
+      if (!declaredNames.has(name)) return;
+      exports.push(
+        'if (typeof ' + name + ' !== "undefined" && window.HadiraNavigation) {' +
+        ' window.HadiraNavigation.exposePageFunction(' + JSON.stringify(name) + ', ' + name + '); }'
+      );
+    });
+
+    return '(function () {\n' + sourceText + '\n' + exports.join('\n') + '\n})();';
+  }
+
+  function runOneScript(source, scriptContainer, targetUrl, handlerNames) {
     return new Promise(function (resolve) {
       var script = document.createElement('script');
       copyAttributes(source, script);
@@ -443,13 +494,14 @@ $(document).on('click', '.checkbox-table', function () {
         return;
       }
 
-      script.textContent = source.textContent || '';
+      script.textContent = wrapInlinePageScript(source.textContent || '', handlerNames || new Set());
       scriptContainer.appendChild(script);
       resolve();
     });
   }
 
-  async function runPageScripts(sourceScripts, targetUrl) {
+  async function runPageScripts(sourceScripts, targetUrl, pageRoot) {
+    var handlerNames = collectInlineHandlerNames(pageRoot);
     var oldContainer = document.querySelector(scriptsSelector);
     if (oldContainer) oldContainer.remove();
 
@@ -460,7 +512,7 @@ $(document).on('click', '.checkbox-table', function () {
     document.body.appendChild(newContainer);
 
     for (var i = 0; i < sourceScripts.length; i++) {
-      await runOneScript(sourceScripts[i], newContainer, targetUrl);
+      await runOneScript(sourceScripts[i], newContainer, targetUrl, handlerNames);
     }
   }
 
@@ -500,13 +552,13 @@ $(document).on('click', '.checkbox-table', function () {
         });
       }
 
-      var destinationHasPageScripts = nextDocument.body &&
-        nextDocument.body.getAttribute('data-hadira-page-scripted') === 'true';
+      var destinationRequiresFullNavigation = nextDocument.body &&
+        nextDocument.body.getAttribute('data-hadira-full-navigation') === 'true';
 
       var nextPageBody = nextPage && nextPage.classList.contains('content') ? nextPage : (nextPage && nextPage.querySelector('.content'));
 
       if (!response.ok || !nextPage || !nextScriptsContainer || !nextPageBody ||
-          destinationHasPageScripts || scriptNeedsFullLoad(sourceScripts)) {
+          destinationRequiresFullNavigation || scriptNeedsFullLoad(sourceScripts)) {
         window.location.assign(response.url || requestedUrl.href);
         return;
       }
@@ -549,7 +601,7 @@ $(document).on('click', '.checkbox-table', function () {
 
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       beginPage();
-      await runPageScripts(sourceScripts, finalUrl.href);
+      await runPageScripts(sourceScripts, finalUrl.href, insertedPage);
 
       window.setTimeout(function () {
         var page = document.querySelector(pageSelector);
@@ -572,7 +624,7 @@ $(document).on('click', '.checkbox-table', function () {
     if (!link) return;
 
     // Don't keep a script-heavy source page alive during partial navigation.
-    if (document.body.getAttribute('data-hadira-page-scripted') === 'true') return;
+    if (document.body.getAttribute('data-hadira-full-navigation') === 'true') return;
 
     var navigationUrl = isPlainNavigationClick(event, link);
     if (!navigationUrl) return;
@@ -593,8 +645,28 @@ $(document).on('click', '.checkbox-table', function () {
     navigate(targetUrl.href, false);
   });
 
+  function exposePageFunction(name, value) {
+    if (!name || typeof value === 'undefined') return;
+
+    var descriptor;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(window, name);
+      window[name] = value;
+      pageGlobalRestores.push(function () {
+        try {
+          if (window[name] !== value) return;
+          if (descriptor) Object.defineProperty(window, name, descriptor);
+          else delete window[name];
+        } catch (error) {}
+      });
+    } catch (error) {
+      // Keep the page usable if a browser/global property cannot be changed.
+    }
+  }
+
   window.HadiraNavigation = {
-    beginPage: beginPage
+    beginPage: beginPage,
+    exposePageFunction: exposePageFunction
   };
 
   markCurrentPageStyles();
