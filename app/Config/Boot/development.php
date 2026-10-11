@@ -29,4 +29,8 @@ defined('SHOW_DEBUG_BACKTRACE') || define('SHOW_DEBUG_BACKTRACE', true);
  | the system. This will control whether Kint is loaded, and a few other
  | items. It can always be used within your own application too.
  */
-defined('CI_DEBUG') || define('CI_DEBUG', true);
+// Keep debug overlays and toolbar off by default so local presentation pages stay clean.
+// Set CI_DEBUG = true in .env when you need the CodeIgniter Debug Toolbar again.
+$debugSetting = env('CI_DEBUG', false);
+$debugEnabled = filter_var($debugSetting, FILTER_VALIDATE_BOOLEAN);
+defined('CI_DEBUG') || define('CI_DEBUG', $debugEnabled);
