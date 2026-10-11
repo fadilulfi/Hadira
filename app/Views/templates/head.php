@@ -1,9 +1,10 @@
-<head>
+ <head>
    <meta charset="UTF-8">
    <meta http-equiv="X-UA-Compatible" content="IE=edge">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <meta name="description" content="Absensi Sekolah QR Code - Sistem absensi modern berbasis QR Code">
    <meta name="theme-color" content="#9c27b0">
+   <meta name="view-transition" content="same-origin">
    <?= csrf_meta(); ?>
 
    <link rel="manifest" href="<?= base_url('manifest.json') ?>">
