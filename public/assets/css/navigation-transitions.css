@@ -40,6 +40,32 @@
         overscroll-behavior-y: contain;
     }
 
+    .hadira-app-shell > .sidebar .sidebar-wrapper {
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+    }
+
+    .hadira-app-shell > .sidebar .sidebar-wrapper:hover {
+        scrollbar-color: rgba(90, 90, 90, .55) transparent;
+    }
+
+    .hadira-app-shell > .sidebar .sidebar-wrapper::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .hadira-app-shell > .sidebar .sidebar-wrapper::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .hadira-app-shell > .sidebar .sidebar-wrapper::-webkit-scrollbar-thumb {
+        border-radius: 8px;
+        background: transparent;
+    }
+
+    .hadira-app-shell > .sidebar .sidebar-wrapper:hover::-webkit-scrollbar-thumb {
+        background: rgba(90, 90, 90, .55);
+    }
+
     .hadira-app-shell > .main-panel {
         position: relative;
         float: none;
