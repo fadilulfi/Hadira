@@ -496,7 +496,8 @@ $(document).on('click', '.checkbox-table', function () {
 
       var inlineType = (source.getAttribute('type') || '').trim().toLowerCase();
       var scopedTypes = ['', 'text/javascript', 'application/javascript', 'text/ecmascript', 'application/ecmascript'];
-      script.textContent = scopedTypes.indexOf(inlineType) !== -1
+      var alreadyScoped = source.hasAttribute('data-hadira-page-scoped');
+      script.textContent = !alreadyScoped && scopedTypes.indexOf(inlineType) !== -1
         ? wrapInlinePageScript(source.textContent || '', handlerNames || new Set())
         : (source.textContent || '');
       scriptContainer.appendChild(script);
