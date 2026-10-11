@@ -108,129 +108,425 @@ $(document).on('click', '.checkbox-table', function () {
 });
 
 /**
- * Navigation polish for the server-rendered HADIRA pages.
- * Keep regular link navigation (and its auth/CSRF/redirect behavior), while
- * showing a small loading indicator and preserving sidebar scroll position.
+ * Persistent-shell navigation for HADIRA.
+ *
+ * Only ordinary same-origin navigation links in the sidebar are enhanced.
+ * Requests remain GETs; all forms, CSRF, redirects and permission checks still
+ * run through CodeIgniter. Pages outside the shared shell fall back to normal
+ * browser navigation.
  */
 (function () {
   'use strict';
 
-  var sidebarScrollKey = 'hadira:sidebar-scroll-top';
-  var scrollSaveTimer = null;
+  var pageSelector = '#hadira-page-content';
+  var scriptsSelector = '#hadira-page-scripts';
+  var navNamespace = '.hadiraPage';
+  var activePageController = null;
+  var pageIntervals = new Set();
+  var navigationController = null;
+  var navigationSequence = 0;
+  var currentPageUrl = window.location.href;
 
-  function readSidebarScroll() {
-    try {
-      return window.sessionStorage.getItem(sidebarScrollKey);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function saveSidebarScroll() {
-    var wrapper = document.querySelector('.sidebar .sidebar-wrapper');
-    if (!wrapper) {
-      return;
-    }
-
-    try {
-      window.sessionStorage.setItem(sidebarScrollKey, String(wrapper.scrollTop || 0));
-    } catch (error) {
-      // Navigation remains usable if storage is unavailable.
-    }
-  }
-
-  function restoreSidebarScroll() {
-    var saved = readSidebarScroll();
-    var scrollTop = saved === null ? NaN : parseInt(saved, 10);
-    if (!Number.isFinite(scrollTop) || scrollTop < 0) {
-      return;
-    }
-
-    function applySavedPosition() {
-      var wrapper = document.querySelector('.sidebar .sidebar-wrapper');
-      if (wrapper) {
-        wrapper.scrollTop = scrollTop;
-      }
-    }
-
-    window.requestAnimationFrame(applySavedPosition);
-    window.setTimeout(applySavedPosition, 100);
-  }
-
-  function createProgressIndicator() {
-    var progress = document.getElementById('hadira-navigation-progress');
-    if (progress) {
-      return progress;
-    }
-
+  var progress = document.getElementById('hadira-navigation-progress');
+  if (!progress) {
     progress = document.createElement('div');
     progress.id = 'hadira-navigation-progress';
     progress.setAttribute('aria-hidden', 'true');
-
-    var bar = document.createElement('span');
-    bar.className = 'hadira-navigation-progress__bar';
-    progress.appendChild(bar);
+    var progressBar = document.createElement('span');
+    progressBar.className = 'hadira-navigation-progress__bar';
+    progress.appendChild(progressBar);
     document.body.appendChild(progress);
-
-    return progress;
   }
 
-  function shouldShowProgress(event, link) {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-      return false;
+  var nativeDocumentAdd = document.addEventListener.bind(document);
+  var nativeWindowAdd = window.addEventListener.bind(window);
+  document.addEventListener = function (type, listener, options) {
+    if (activePageController && typeof AbortController !== 'undefined') {
+      options = withPageSignal(options, activePageController.signal);
+    }
+    return nativeDocumentAdd(type, listener, options);
+  };
+  window.addEventListener = function (type, listener, options) {
+    if (activePageController && typeof AbortController !== 'undefined') {
+      options = withPageSignal(options, activePageController.signal);
+    }
+    return nativeWindowAdd(type, listener, options);
+  };
+
+  function withPageSignal(options, signal) {
+    if (options && typeof options === 'object') {
+      if (options.signal) return options;
+      return Object.assign({}, options, { signal: signal });
+    }
+    return { capture: options === true, signal: signal };
+  }
+
+  var nativeSetInterval = window.setInterval.bind(window);
+  var nativeClearInterval = window.clearInterval.bind(window);
+  window.setInterval = function () {
+    var id = nativeSetInterval.apply(window, arguments);
+    if (activePageController) pageIntervals.add(id);
+    return id;
+  };
+  window.clearInterval = function (id) {
+    pageIntervals.delete(id);
+    return nativeClearInterval(id);
+  };
+
+  if (window.jQuery) {
+    var originalJQueryOn = window.jQuery.fn.on;
+    window.jQuery.fn.on = function (types) {
+      var isPersistentTarget = false;
+      this.each(function () {
+        if (this === document || this === window || this === document.body) {
+          isPersistentTarget = true;
+        }
+      });
+
+      if (activePageController && isPersistentTarget && typeof types === 'string') {
+        var namespaced = types.split(/\s+/).map(function (type) {
+          if (!type || type.indexOf(navNamespace) !== -1) return type;
+          return type + navNamespace;
+        }).join(' ');
+        var args = Array.prototype.slice.call(arguments);
+        args[0] = namespaced;
+        return originalJQueryOn.apply(this, args);
+      }
+
+      return originalJQueryOn.apply(this, arguments);
+    };
+  }
+
+  function disposePage() {
+    if (activePageController) {
+      activePageController.abort();
+      activePageController = null;
     }
 
-    if (link.hasAttribute('download') || (link.target && link.target.toLowerCase() !== '_self')) {
-      return false;
+    pageIntervals.forEach(function (id) {
+      nativeClearInterval(id);
+    });
+    pageIntervals.clear();
+
+    if (window.jQuery) {
+      window.jQuery(document).off(navNamespace);
+      window.jQuery(window).off(navNamespace);
+      window.jQuery(document.body).off(navNamespace);
     }
+  }
+
+  function beginPage() {
+    disposePage();
+    if (typeof AbortController !== 'undefined') {
+      activePageController = new AbortController();
+    }
+  }
+
+  function markCurrentPageStyles() {
+    Array.prototype.forEach.call(
+      document.head.querySelectorAll('style, link[rel~="stylesheet"]'),
+      function (node) {
+        if (!node.hasAttribute('data-hadira-global-style')) {
+          node.setAttribute('data-hadira-page-style', 'true');
+        }
+      }
+    );
+  }
+
+  function setLoading(isLoading) {
+    var page = document.querySelector(pageSelector);
+    if (page) {
+      page.classList.toggle('is-loading', isLoading);
+      page.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    }
+    progress.classList.toggle('is-visible', isLoading);
+  }
+
+  function isPlainNavigationClick(event, link) {
+    if (event.defaultPrevented || event.button !== 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+    if (link.hasAttribute('download') || (link.target && link.target.toLowerCase() !== '_self')) return false;
 
     var href = link.getAttribute('href');
-    if (!href || /^\s*javascript:/i.test(href)) {
-      return false;
-    }
+    if (!href || /^\s*javascript:/i.test(href) || href.charAt(0) === '#') return false;
 
-    var destination;
+    var url;
     try {
-      destination = new URL(link.href, window.location.href);
+      url = new URL(link.href, window.location.href);
     } catch (error) {
       return false;
     }
 
-    if (destination.origin !== window.location.origin || !/^https?:$/.test(destination.protocol)) {
-      return false;
-    }
-
-    return destination.href !== window.location.href;
+    if (url.origin !== window.location.origin || !/^https?:$/.test(url.protocol)) return false;
+    if (url.pathname.replace(/\/+$/, '') === window.location.pathname.replace(/\/+$/, '') &&
+        url.search === window.location.search && url.hash === window.location.hash) return false;
+    if (/\/logout\/?$|\/(download|print)(\/|$)|\/backup\/(db|photos)\/backup(\/|$)/i.test(url.pathname)) return false;
+    return url;
   }
 
-  function initNavigationPolish() {
-    var wrapper = document.querySelector('.sidebar .sidebar-wrapper');
-    var progress = createProgressIndicator();
+  function copyPageStyles(nextDocument, targetUrl, sequence) {
+    var newNodes = Array.prototype.slice.call(
+      nextDocument.head.querySelectorAll('style, link[rel~="stylesheet"]')
+    ).filter(function (node) {
+      return !node.hasAttribute('data-hadira-global-style');
+    });
 
-    if (wrapper) {
-      wrapper.addEventListener('scroll', function () {
-        window.clearTimeout(scrollSaveTimer);
-        scrollSaveTimer = window.setTimeout(saveSidebarScroll, 100);
-      }, { passive: true });
+    var pending = [];
+    newNodes.forEach(function (source) {
+      var clone = source.cloneNode(true);
+      clone.removeAttribute('data-hadira-page-style');
+      clone.setAttribute('data-hadira-pending-page-style', String(sequence));
 
-      restoreSidebarScroll();
-    }
+      if (clone.tagName === 'LINK') {
+        var rawHref = source.getAttribute('href');
+        if (rawHref) clone.href = new URL(rawHref, targetUrl).href;
+        pending.push(new Promise(function (resolve) {
+          var finished = false;
+          var finish = function () {
+            if (finished) return;
+            finished = true;
+            resolve();
+          };
+          clone.addEventListener('load', finish, { once: true });
+          clone.addEventListener('error', finish, { once: true });
+          window.setTimeout(finish, 1800);
+        }));
+      }
 
-    document.addEventListener('click', function (event) {
-      var link = event.target.closest('.sidebar a[href]');
-      if (!link || !shouldShowProgress(event, link)) {
+      document.head.appendChild(clone);
+    });
+
+    return Promise.all(pending).then(function () {
+      var pendingSelector = '[data-hadira-pending-page-style="' + String(sequence) + '"]';
+      if (sequence !== navigationSequence) {
+        Array.prototype.forEach.call(document.head.querySelectorAll(pendingSelector), function (node) {
+          node.remove();
+        });
         return;
       }
 
-      saveSidebarScroll();
-      progress.classList.add('is-visible');
+      Array.prototype.forEach.call(
+        document.head.querySelectorAll('[data-hadira-page-style]'),
+        function (node) { node.remove(); }
+      );
+      Array.prototype.forEach.call(
+        document.head.querySelectorAll(pendingSelector),
+        function (node) {
+          node.removeAttribute('data-hadira-pending-page-style');
+          node.setAttribute('data-hadira-page-style', 'true');
+        }
+      );
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initNavigationPolish, { once: true });
-  } else {
-    initNavigationPolish();
+  function copyCsrfMeta(nextDocument) {
+    var current = document.querySelector('meta[name="X-CSRF-TOKEN"]');
+    var next = nextDocument.querySelector('meta[name="X-CSRF-TOKEN"]');
+    if (current && next) current.setAttribute('content', next.getAttribute('content') || '');
   }
-})();
 
+  function updateActiveNavigation(context, currentUrl) {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.sidebar a[data-hadira-nav][data-nav-context]'),
+      function (link) {
+        var linkContext = link.getAttribute('data-nav-context');
+        var active = linkContext === context ||
+          (linkContext === 'teacher-absensi-kelas' && context === 'teacher-absensi-kelas-form');
+
+        if (!context && currentUrl) {
+          try {
+            var target = new URL(link.href, window.location.href);
+            var current = new URL(currentUrl, window.location.href);
+            active = target.pathname.replace(/\/+$/, '') === current.pathname.replace(/\/+$/, '') &&
+              target.search === current.search;
+          } catch (error) {
+            active = false;
+          }
+        }
+
+        var item = link.closest('.nav-item');
+        if (item) item.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      }
+    );
+  }
+
+  function copyAttributes(source, destination) {
+    Array.prototype.forEach.call(source.attributes, function (attribute) {
+      destination.setAttribute(attribute.name, attribute.value);
+    });
+  }
+
+  function scriptNeedsFullLoad(scripts) {
+    return scripts.some(function (script) {
+      var body = script.textContent || '';
+      return /\bDOMContentLoaded\b/.test(body) ||
+        /\b(?:window|self)\s*\.\s*onload\s*=/.test(body) ||
+        /\b(?:window|self)\s*\.\s*addEventListener\s*\(\s*['"]load['"]/.test(body);
+    });
+  }
+
+  function runOneScript(source, scriptContainer, targetUrl) {
+    return new Promise(function (resolve) {
+      var script = document.createElement('script');
+      copyAttributes(source, script);
+
+      var rawSrc = source.getAttribute('src');
+      if (rawSrc) {
+        script.src = new URL(rawSrc, targetUrl).href;
+        script.async = false;
+        script.onload = resolve;
+        script.onerror = resolve;
+        window.setTimeout(resolve, 5000);
+        scriptContainer.appendChild(script);
+        return;
+      }
+
+      script.textContent = source.textContent || '';
+      scriptContainer.appendChild(script);
+      resolve();
+    });
+  }
+
+  async function runPageScripts(sourceScripts, targetUrl) {
+    var oldContainer = document.querySelector(scriptsSelector);
+    if (oldContainer) oldContainer.remove();
+
+    var newContainer = document.createElement('div');
+    newContainer.id = 'hadira-page-scripts';
+    newContainer.setAttribute('data-hadira-page-scripts', '');
+    newContainer.hidden = true;
+    document.body.appendChild(newContainer);
+
+    for (var i = 0; i < sourceScripts.length; i++) {
+      await runOneScript(sourceScripts[i], newContainer, targetUrl);
+    }
+  }
+
+  async function navigate(url, pushHistory) {
+    if (navigationController) navigationController.abort();
+    navigationController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var thisSequence = ++navigationSequence;
+    var signal = navigationController ? navigationController.signal : undefined;
+    var requestedUrl = new URL(url, window.location.href);
+
+    setLoading(true);
+
+    try {
+      var response = await fetch(requestedUrl.href, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'text/html', 'X-Hadira-Navigation': '1' },
+        signal: signal
+      });
+      var html = await response.text();
+      if (thisSequence !== navigationSequence) return;
+
+      var nextDocument = new DOMParser().parseFromString(html, 'text/html');
+      var nextPage = nextDocument.querySelector(pageSelector);
+      var nextScriptsContainer = nextDocument.querySelector(scriptsSelector);
+      var sourceScripts = [];
+
+      if (nextPage) {
+        Array.prototype.forEach.call(nextPage.querySelectorAll('script'), function (script) {
+          sourceScripts.push(script.cloneNode(true));
+          script.remove();
+        });
+      }
+      if (nextScriptsContainer) {
+        Array.prototype.forEach.call(nextScriptsContainer.querySelectorAll('script'), function (script) {
+          sourceScripts.push(script.cloneNode(true));
+        });
+      }
+
+      if (!response.ok || !nextPage || !nextScriptsContainer || scriptNeedsFullLoad(sourceScripts)) {
+        window.location.assign(response.url || requestedUrl.href);
+        return;
+      }
+
+      var finalUrl = new URL(response.url || requestedUrl.href, window.location.href);
+      if (!finalUrl.hash && requestedUrl.hash) finalUrl.hash = requestedUrl.hash;
+      if (finalUrl.origin !== window.location.origin) {
+        window.location.assign(finalUrl.href);
+        return;
+      }
+
+      await copyPageStyles(nextDocument, finalUrl.href, thisSequence);
+      if (thisSequence !== navigationSequence) return;
+
+      var pageTitle = nextPage.getAttribute('data-page-title') || nextDocument.title || 'HADIRA';
+      var pageContext = nextPage.getAttribute('data-page-context') || '';
+      var currentPage = document.querySelector(pageSelector);
+      if (!currentPage) {
+        window.location.assign(finalUrl.href);
+        return;
+      }
+
+      disposePage();
+      var insertedPage = document.importNode(nextPage, true);
+      insertedPage.classList.add('is-entering');
+      insertedPage.classList.remove('is-loading');
+      insertedPage.setAttribute('aria-busy', 'false');
+      currentPage.replaceWith(insertedPage);
+
+      document.title = nextDocument.title || pageTitle;
+      var navbarTitle = document.getElementById('hadira-page-title');
+      if (navbarTitle) navbarTitle.textContent = pageTitle;
+      copyCsrfMeta(nextDocument);
+      updateActiveNavigation(pageContext, finalUrl.href);
+
+      if (pushHistory) {
+        window.history.pushState({ hadiraNavigation: true }, '', finalUrl.href);
+      }
+      currentPageUrl = finalUrl.href;
+
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      beginPage();
+      await runPageScripts(sourceScripts, finalUrl.href);
+
+      window.setTimeout(function () {
+        var page = document.querySelector(pageSelector);
+        if (page) page.classList.remove('is-entering');
+      }, 320);
+    } catch (error) {
+      if (error && error.name === 'AbortError') return;
+      if (thisSequence === navigationSequence) {
+        window.location.assign(requestedUrl.href);
+      }
+    } finally {
+      if (thisSequence === navigationSequence) setLoading(false);
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    var target = event.target;
+    if (!target || typeof target.closest !== 'function') return;
+    var link = target.closest('.sidebar a[data-hadira-nav][href], #hadira-page-content a[href]');
+    if (!link) return;
+
+    var navigationUrl = isPlainNavigationClick(event, link);
+    if (!navigationUrl) return;
+
+    event.preventDefault();
+    navigate(navigationUrl.href, true);
+  });
+
+  window.addEventListener('popstate', function () {
+    var targetUrl = new URL(window.location.href);
+    var currentUrl = new URL(currentPageUrl, window.location.href);
+    if (targetUrl.origin === currentUrl.origin &&
+        targetUrl.pathname === currentUrl.pathname &&
+        targetUrl.search === currentUrl.search) {
+      currentPageUrl = targetUrl.href;
+      return;
+    }
+    navigate(targetUrl.href, false);
+  });
+
+  window.HadiraNavigation = {
+    beginPage: beginPage
+  };
+
+  markCurrentPageStyles();
+})();

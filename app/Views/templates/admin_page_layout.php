@@ -4,13 +4,18 @@
 <?= $this->include("templates/head") ?>
 
 <body>
-   <div>
+   <div class="hadira-app-shell">
       <?= $this->include("templates/sidebar") ?>
       <div class="main-panel">
 
          <?= $this->include("templates/navbar") ?>
 
-         <?= $this->renderSection("content") ?>
+         <div id="hadira-page-content"
+              data-hadira-page-content
+              data-page-title="<?= esc($title ?? 'HADIRA'); ?>"
+              data-page-context="<?= esc($ctx ?? ''); ?>">
+            <?= $this->renderSection("content") ?>
+         </div>
 
          <?= $this->include("templates/footer") ?>
 
@@ -31,9 +36,14 @@
          textOk: "Ok",
          textCancel: "Batalkan"
       };
+      if (window.HadiraNavigation) {
+         window.HadiraNavigation.beginPage();
+      }
    </script>
 
-    <?= $this->renderSection("scripts") ?>
+   <div id="hadira-page-scripts" data-hadira-page-scripts hidden>
+      <?= $this->renderSection("scripts") ?>
+   </div>
 </body>
 
 </html>
