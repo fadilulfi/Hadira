@@ -119,7 +119,7 @@ if ($isSuperAdmin) {
                 || ($item['context'] === 'teacher-absensi-kelas' && $context === 'teacher-absensi-kelas-form');
          ?>
          <li class="nav-item <?= $isActive ? 'active' : ''; ?>">
-            <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" <?= $isActive ? 'aria-current="page"' : ''; ?>>
+            <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>" <?= $isActive ? 'aria-current="page"' : ''; ?>>
                <i class="material-icons"><?= $item['icon']; ?></i>
                <p><?= esc($item['title']); ?></p>
             </a>
@@ -130,7 +130,7 @@ if ($isSuperAdmin) {
          <li class="nav-item"><p class="nav-link py-1">Administrasi</p></li>
          <?php foreach ($adminItems as $item): ?>
          <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
-            <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>">
+            <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>">
                <i class="material-icons"><?= $item['icon']; ?></i>
                <p><?= esc($item['title']); ?></p>
             </a>
@@ -139,7 +139,7 @@ if ($isSuperAdmin) {
 <?php endif; ?>
 <?php if ($rolePanels === [] && $adminItems === [] && $isScanner): ?>
          <li class="nav-item <?= $context === 'scan' ? 'active' : ''; ?>">
-            <a class="nav-link font-weight-bold" href="<?= base_url('scan'); ?>">
+            <a class="nav-link font-weight-bold" href="<?= base_url('scan'); ?>" data-hadira-nav="true" data-nav-context="scan">
                <i class="material-icons">qr_code</i><p>Scan QR</p>
             </a>
          </li>
