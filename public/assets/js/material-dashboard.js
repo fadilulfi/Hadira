@@ -20,7 +20,8 @@
 
   if (isWindows) {
     // if we are on windows OS we activate the perfectScrollbar function
-    $('.sidebar .sidebar-wrapper, .main-panel, .main').perfectScrollbar();
+    // Only the sidebar gets its own scrollbar. The main content uses native document scrolling.
+    $('.sidebar .sidebar-wrapper').perfectScrollbar();
 
     $('html').addClass('perfect-scrollbar-on');
   } else {
