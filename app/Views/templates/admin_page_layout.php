@@ -1,9 +1,16 @@
+<?php
+// Keep AJAX navigation limited to pages with no page-specific JavaScript.
+// Script-heavy pages use normal navigation to preserve their one-page JS lifecycle.
+$pageContent = (string) $this->renderSection("content");
+$pageScripts = (string) $this->renderSection("scripts");
+$pageHasScripts = preg_match('/<script\b/i', $pageContent . $pageScripts) === 1;
+?>
 <!DOCTYPE html>
 <html lang="id">
 
 <?= $this->include("templates/head") ?>
 
-<body>
+<body data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
    <div class="hadira-app-shell">
       <?= $this->include("templates/sidebar") ?>
       <div class="main-panel">
@@ -14,7 +21,7 @@
               data-hadira-page-content
               data-page-title="<?= esc($title ?? 'HADIRA'); ?>"
               data-page-context="<?= esc($ctx ?? ''); ?>">
-            <?= $this->renderSection("content") ?>
+            <?= $pageContent ?>
          </div>
 
          <?= $this->include("templates/footer") ?>
@@ -42,7 +49,7 @@
    </script>
 
    <div id="hadira-page-scripts" data-hadira-page-scripts hidden>
-      <?= $this->renderSection("scripts") ?>
+      <?= $pageScripts ?>
    </div>
 </body>
 
