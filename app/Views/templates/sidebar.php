@@ -113,8 +113,13 @@ if ($isSuperAdmin) {
 <?php foreach ($rolePanels as $panel): ?>
          <li class="nav-item"><p class="nav-link py-1"><?= esc($panel['label']); ?></p></li>
          <?php foreach ($panel['items'] as $item): ?>
-         <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
-            <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>">
+         <?php
+            // Keep the parent menu active while viewing a specific class-attendance schedule.
+            $isActive = $context === $item['context']
+                || ($item['context'] === 'teacher-absensi-kelas' && $context === 'teacher-absensi-kelas-form');
+         ?>
+         <li class="nav-item <?= $isActive ? 'active' : ''; ?>">
+            <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" <?= $isActive ? 'aria-current="page"' : ''; ?>>
                <i class="material-icons"><?= $item['icon']; ?></i>
                <p><?= esc($item['title']); ?></p>
             </a>

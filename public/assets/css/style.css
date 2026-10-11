@@ -224,3 +224,49 @@
         max-width: 100%;
     }
 }
+
+/* HADIRA navigation loading feedback */
+#hadira-navigation-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    z-index: 2000;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms ease;
+}
+
+#hadira-navigation-progress.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#hadira-navigation-progress .hadira-navigation-progress__bar {
+    display: block;
+    width: 32%;
+    height: 100%;
+    background-color: #9c27b0;
+    transform: translateX(-100%);
+}
+
+#hadira-navigation-progress.is-visible .hadira-navigation-progress__bar {
+    animation: hadira-navigation-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes hadira-navigation-progress {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(420%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #hadira-navigation-progress.is-visible .hadira-navigation-progress__bar {
+        width: 100%;
+        transform: translateX(0);
+        animation: none;
+    }
+}
+
