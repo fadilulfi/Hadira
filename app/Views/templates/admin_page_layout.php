@@ -71,7 +71,7 @@ $pageScripts = preg_replace_callback(
                 . 'window.HadiraNavigation.exposePageFunction(' . $encodedName . ', ' . $functionName . '); }';
         }
 
-        return '<script' . $attributes . ">\n(function () {\n"
+        return '<script' . $attributes . ' data-hadira-page-scoped="true">' . "\n(function () {\n"
             . $scriptCode . "\n" . implode("\n", $exports) . "\n})();\n</script>";
     },
     $pageScripts
