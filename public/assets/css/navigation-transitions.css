@@ -3,6 +3,17 @@
  * The sidebar and navbar stay mounted; only the page content is exchanged.
  */
 
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    overscroll-behavior-y: none;
+}
+
 /*
  * Desktop shell: a persistent sidebar column and a separately growing content
  * column. On mobile, preserve Material Dashboard's existing off-canvas drawer.
@@ -12,7 +23,7 @@
 .hadira-app-shell.wrapper {
     position: relative;
     top: 0;
-    height: auto;
+    height: 100vh;
     width: 100%;
     min-height: 100vh;
 }
@@ -93,26 +104,21 @@
         flex-direction: column;
     }
 
-    /* Navbar harus flex-shrink 0 agar tidak mengecil */
-    .hadira-app-shell > .main-panel > .navbar {
-        flex-shrink: 0;
-        flex-grow: 0;
-    }
-
-    /* Konten halaman yang scroll */
-    .hadira-app-shell > .main-panel > #hadira-page-content,
-    .hadira-app-shell > .main-panel > .content {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        min-height: 0;
-    }
-
-    /* Footer harus flex-shrink 0 */
+    .hadira-app-shell > .main-panel > .navbar,
     .hadira-app-shell > .main-panel > .footer {
         flex-shrink: 0;
         flex-grow: 0;
+    }
+
+    /* Konten halaman yang boleh scroll */
+    .hadira-app-shell > .main-panel > #hadira-page-content,
+    .hadira-app-shell > .main-panel > #hadira-page-content > .content,
+    .hadira-app-shell > .main-panel > .content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -202,7 +208,6 @@
     }
 }
 
-
 /*
  * The existing Admin layout intentionally keeps its historical wrapper around
  * the rendered .content element. Preserve its spacing without changing the
@@ -236,22 +241,26 @@
 
 /* Scrollbar styling untuk content area */
 .main-panel > #hadira-page-content::-webkit-scrollbar,
-.main-panel > .content::-webkit-scrollbar {
+.main-panel > .content::-webkit-scrollbar,
+.main-panel > #hadira-page-content > .content::-webkit-scrollbar {
     width: 8px;
 }
 
 .main-panel > #hadira-page-content::-webkit-scrollbar-track,
-.main-panel > .content::-webkit-scrollbar-track {
+.main-panel > .content::-webkit-scrollbar-track,
+.main-panel > #hadira-page-content > .content::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .main-panel > #hadira-page-content::-webkit-scrollbar-thumb,
-.main-panel > .content::-webkit-scrollbar-thumb {
+.main-panel > .content::-webkit-scrollbar-thumb,
+.main-panel > #hadira-page-content > .content::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
 }
 
 .main-panel > #hadira-page-content::-webkit-scrollbar-thumb:hover,
-.main-panel > .content::-webkit-scrollbar-thumb:hover {
+.main-panel > .content::-webkit-scrollbar-thumb:hover,
+.main-panel > #hadira-page-content > .content::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
