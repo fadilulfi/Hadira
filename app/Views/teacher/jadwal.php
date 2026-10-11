@@ -1,4 +1,4 @@
-<?= $this->extend('templates/admin_page_layout') ?>
+<?= $this->extend('templates/role_page_layout') ?>
 <?= $this->section('content') ?>
 <div class="content"><div class="container-fluid">
 <div class="d-flex justify-content-between align-items-center mb-3 no-print"><div><h3 class="mb-0">Jadwal Saya</h3><small class="text-muted">Panel baru</small></div></div>

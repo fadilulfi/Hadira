@@ -173,3 +173,31 @@
         animation: none;
     }
 }
+
+
+/*
+ * The existing Admin layout intentionally keeps its historical wrapper around
+ * the rendered .content element. Preserve its spacing without changing the
+ * Admin parent DOM while the role-specific layout uses .main-panel > .content.
+ */
+.main-panel > #hadira-page-content:not(.content) {
+    display: flow-root;
+    width: 100%;
+    min-width: 0;
+}
+
+.main-panel > #hadira-page-content:not(.content) > .content {
+    margin-top: 70px;
+    padding: 30px 15px;
+    min-height: calc(100vh - 123px);
+    transition: opacity 140ms ease;
+}
+
+#hadira-page-content:not(.content).is-loading > .content {
+    opacity: 0.58;
+    pointer-events: none;
+}
+
+#hadira-page-content:not(.content).is-entering > .content {
+    animation: hadira-content-enter 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
