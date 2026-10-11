@@ -119,7 +119,7 @@ $(document).on('click', '.checkbox-table', function () {
   function normalizedPath(link) {
     try {
       var url = new URL(link.href, window.location.href);
-      return url.origin + url.pathname.replace(/\\/+$/, '') + (url.search || '');
+      return url.origin + url.pathname.replace(/\/+$/, '') + (url.search || '');
     } catch (error) {
       return '';
     }
