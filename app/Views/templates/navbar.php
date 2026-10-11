@@ -2,7 +2,7 @@
 <nav class="navbar navbar-expand-lg navbar-transparent navbar-absolute fixed-top">
    <div class="container-fluid">
       <div class="navbar-wrapper">
-         <p class="navbar-brand my-auto"><b><?= esc($title ?? 'HADIRA'); ?></b></p>
+         <p class="navbar-brand my-auto"><b id="hadira-page-title"><?= esc($title ?? 'HADIRA'); ?></b></p>
       </div>
 
       <button class="navbar-toggler" type="button" data-toggle="collapse" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
