@@ -92,7 +92,14 @@
 }
 
 .main-panel > #hadira-page-content {
-    display: contents;
+    /*
+     * Keep a real layout box around the swapped page. display: contents can
+     * make content-height and footer placement fragile when the node is
+     * replaced dynamically.
+     */
+    display: flow-root;
+    width: 100%;
+    min-width: 0;
 }
 
 .main-panel > #hadira-page-content > .content {
