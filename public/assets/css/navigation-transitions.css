@@ -7,25 +7,14 @@
  * Desktop shell: a persistent sidebar column and a separately growing content
  * column. On mobile, preserve Material Dashboard's existing off-canvas drawer.
  */
-html,
-body {
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-}
-
-body {
-    overscroll-behavior-y: none;
-}
 
 /* Material Dashboard expects its shell to be .wrapper; allow it to grow with page content. */
 .hadira-app-shell.wrapper {
     position: relative;
     top: 0;
-    height: 100vh;
+    height: auto;
     width: 100%;
     min-height: 100vh;
-    overflow: hidden;
 }
 
 .hadira-app-shell {
@@ -40,6 +29,7 @@ body {
         align-items: flex-start;
         min-height: 100vh;
         height: 100vh;
+        width: 100%;
     }
 
     .hadira-app-shell > .sidebar {
@@ -54,10 +44,12 @@ body {
         max-height: 100vh;
         align-self: flex-start;
         transform: none !important;
+        overflow: hidden;
     }
 
     .hadira-app-shell > .sidebar .sidebar-wrapper {
         min-height: 0;
+        height: calc(100vh - 80px);
         overflow-y: auto;
         overscroll-behavior-y: contain;
     }
@@ -96,40 +88,47 @@ body {
         min-width: 0;
         height: 100vh;
         max-height: 100vh;
-        min-height: 100vh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+    }
+
+    /* Navbar harus flex-shrink 0 agar tidak mengecil */
+    .hadira-app-shell > .main-panel > .navbar {
+        flex-shrink: 0;
+        flex-grow: 0;
+    }
+
+    /* Konten halaman yang scroll */
+    .hadira-app-shell > .main-panel > #hadira-page-content,
+    .hadira-app-shell > .main-panel > .content {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        min-height: 0;
+    }
+
+    /* Footer harus flex-shrink 0 */
+    .hadira-app-shell > .main-panel > .footer {
+        flex-shrink: 0;
+        flex-grow: 0;
     }
 }
 
 @media (max-width: 991.98px) {
     .hadira-app-shell {
         display: block;
-        height: 100vh;
-        overflow: hidden;
     }
 
     .hadira-app-shell > .main-panel {
         float: none;
         width: 100%;
         min-width: 0;
-        height: 100vh;
-        overflow: hidden;
     }
 }
 
 /* The navigation target is the actual .content node, directly inside .main-panel. */
-.main-panel > #hadira-page-content.content,
-.main-panel > .content,
-#hadira-page-content.content {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-}
-
 .main-panel > #hadira-page-content.content {
     transition: opacity 140ms ease;
 }
@@ -203,6 +202,7 @@ body {
     }
 }
 
+
 /*
  * The existing Admin layout intentionally keeps its historical wrapper around
  * the rendered .content element. Preserve its spacing without changing the
@@ -212,12 +212,16 @@ body {
     display: flow-root;
     width: 100%;
     min-width: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
 }
 
 .main-panel > #hadira-page-content:not(.content) > .content {
-    margin-top: 70px;
+    margin-top: 0;
     padding: 30px 15px;
-    min-height: calc(100vh - 123px);
     transition: opacity 140ms ease;
 }
 
@@ -228,4 +232,26 @@ body {
 
 #hadira-page-content:not(.content).is-entering > .content {
     animation: hadira-content-enter 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Scrollbar styling untuk content area */
+.main-panel > #hadira-page-content::-webkit-scrollbar,
+.main-panel > .content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main-panel > #hadira-page-content::-webkit-scrollbar-track,
+.main-panel > .content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.main-panel > #hadira-page-content::-webkit-scrollbar-thumb,
+.main-panel > .content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.main-panel > #hadira-page-content::-webkit-scrollbar-thumb:hover,
+.main-panel > .content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
