@@ -53,7 +53,7 @@ $pageScripts = preg_replace_callback(
 
         if (preg_match('/\btype\s*=\s*(["\'])(.*?)\1/i', $attributes, $typeMatch) === 1) {
             $scriptType = strtolower(trim($typeMatch[2]));
-            if (!in_array($scriptType, ['text/javascript', 'application/javascript', 'text/ecmascript', 'application/ecmascript', 'module'], true)) {
+            if (!in_array($scriptType, ['text/javascript', 'application/javascript', 'text/ecmascript', 'application/ecmascript'], true)) {
                 return $matches[0];
             }
         }
