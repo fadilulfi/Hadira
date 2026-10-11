@@ -1,50 +1,74 @@
 /*
- * Smooth same-origin page transitions for HADIRA.
- *
- * This is a progressive enhancement: normal CodeIgniter navigation, forms,
- * CSRF protection, redirects, authentication and role filters remain intact.
- * Browsers that do not support cross-document View Transitions ignore the
- * @view-transition rule and continue with ordinary page navigation.
+ * HADIRA navigation transitions.
+ * Turbo keeps #hadira-sidebar mounted and swaps the page body for eligible
+ * sidebar GET links. View transitions are scoped so the sidebar itself does
+ * not fade or slide during a menu change.
  */
 @view-transition {
     navigation: auto;
 }
 
-::view-transition-old(root) {
-    animation: hadira-page-leave 140ms ease-in both;
+.sidebar {
+    view-transition-name: hadira-sidebar;
 }
 
-::view-transition-new(root) {
-    animation: hadira-page-enter 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+.main-panel {
+    view-transition-name: hadira-main-panel;
+}
+
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-old(hadira-sidebar),
+::view-transition-new(hadira-sidebar) {
+    animation: none !important;
+}
+
+::view-transition-old(hadira-main-panel) {
+    animation: hadira-page-leave 120ms ease-in both;
+}
+
+::view-transition-new(hadira-main-panel) {
+    animation: hadira-page-enter 180ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 @keyframes hadira-page-leave {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    to {
-        opacity: 0.96;
-        transform: translateY(-3px);
-    }
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0.96; transform: translateY(-2px); }
 }
 
 @keyframes hadira-page-enter {
-    from {
-        opacity: 0.78;
-        transform: translateY(8px);
-    }
+    from { opacity: 0.82; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Turbo toggles aria-busy during visits; the indicator stays outside the swapped body. */
+html[aria-busy="true"]::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 32%;
+    height: 3px;
+    z-index: 9999;
+    pointer-events: none;
+    background: #9c27b0;
+    animation: hadira-navigation-progress 850ms ease-in-out infinite;
+}
+
+@keyframes hadira-navigation-progress {
+    from { transform: translateX(-105%); }
+    to { transform: translateX(420%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    ::view-transition-old(root),
-    ::view-transition-new(root) {
+    ::view-transition-old(hadira-main-panel),
+    ::view-transition-new(hadira-main-panel),
+    html[aria-busy="true"]::before {
         animation: none !important;
+    }
+
+    html[aria-busy="true"]::before {
+        width: 100%;
+        transform: none;
     }
 }
