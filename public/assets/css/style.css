@@ -270,3 +270,63 @@
     }
 }
 
+/* ============================================
+   HADIRA SCROLL FIX - Main content scrollable
+   ============================================ */
+
+/* Ensure navbar doesn't affect scrolling */
+.navbar {
+    flex-shrink: 0;
+}
+
+/* Ensure footer doesn't affect scrolling */
+.footer {
+    flex-shrink: 0;
+}
+
+/* Main content wrapper - scrollable */
+.main-panel > .content,
+.main-panel > #hadira-page-content.content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Admin layout content - scrollable */
+.main-panel > #hadira-page-content:not(.content) > .content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    max-height: calc(100vh - 140px);
+}
+
+/* Smooth scrolling */
+.main-panel > .content,
+.main-panel > #hadira-page-content.content,
+.main-panel > #hadira-page-content:not(.content) > .content {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar styling */
+.main-panel > .content::-webkit-scrollbar,
+.main-panel > #hadira-page-content.content::-webkit-scrollbar,
+.main-panel > #hadira-page-content:not(.content) > .content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main-panel > .content::-webkit-scrollbar-track,
+.main-panel > #hadira-page-content.content::-webkit-scrollbar-track,
+.main-panel > #hadira-page-content:not(.content) > .content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.main-panel > .content::-webkit-scrollbar-thumb,
+.main-panel > #hadira-page-content.content::-webkit-scrollbar-thumb,
+.main-panel > #hadira-page-content:not(.content) > .content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.main-panel > .content::-webkit-scrollbar-thumb:hover,
+.main-panel > #hadira-page-content.content::-webkit-scrollbar-thumb:hover,
+.main-panel > #hadira-page-content:not(.content) > .content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

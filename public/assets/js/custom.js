@@ -547,9 +547,6 @@ $(document).on('click', '.checkbox-table', function () {
       }
       currentPageUrl = finalUrl.href;
 
-      // Desktop content scrolls inside .main-panel; reset that scroll region on navigation.
-      var scrollPanel = document.querySelector('.hadira-app-shell > .main-panel');
-      if (scrollPanel) scrollPanel.scrollTop = 0;
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       beginPage();
       await runPageScripts(sourceScripts, finalUrl.href);

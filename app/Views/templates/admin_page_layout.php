@@ -10,7 +10,7 @@ $pageHasScripts = preg_match('/<script\b/i', $pageContent . $pageScripts) === 1;
 
 <?= $this->include("templates/head") ?>
 
-<body class="hadira-shell-page" data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
+<body data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
    <div class="wrapper hadira-app-shell hadira-admin-shell">
       <?= $this->include("templates/sidebar") ?>
       <div class="main-panel">
