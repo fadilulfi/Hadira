@@ -101,7 +101,7 @@ if ($isSuperAdmin) {
     $rolePanels = [];
 }
 ?>
-<div class="sidebar" data-color="<?= $sidebarColor; ?>" data-image="<?= base_url('assets/img/sidebar/sidebar-3.jpg'); ?>">
+<div id="hadira-sidebar" class="sidebar" data-turbo-permanent data-turbo="<?= !empty($pageHasScripts) ? 'false' : 'true'; ?>" data-color="<?= $sidebarColor; ?>" data-image="<?= base_url('assets/img/sidebar/sidebar-3.jpg'); ?>">
    <div class="logo">
       <a class="simple-text logo-normal">
          <b><?= esc($roleLabel); ?></b><br>
