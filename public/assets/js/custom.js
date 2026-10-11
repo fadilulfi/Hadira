@@ -108,12 +108,72 @@ $(document).on('click', '.checkbox-table', function () {
 });
 
 /**
+ * Preserve sidebar scroll position when a page with custom scripts needs a
+ * normal browser navigation. AJAX visits keep the existing sidebar mounted,
+ * so this is mainly for full-page fallbacks and manual refreshes.
+ */
+(function preserveSidebarScroll() {
+  'use strict';
+  var storageKey = 'hadira:sidebar-scroll-top';
+  var saveTimer = null;
+
+  function getWrapper() {
+    return document.querySelector('.sidebar .sidebar-wrapper');
+  }
+
+  function savePosition() {
+    var wrapper = getWrapper();
+    if (!wrapper) return;
+    try {
+      window.sessionStorage.setItem(storageKey, String(wrapper.scrollTop || 0));
+    } catch (error) {
+      // The application remains usable when session storage is unavailable.
+    }
+  }
+
+  function restorePosition() {
+    var saved;
+    try {
+      saved = window.sessionStorage.getItem(storageKey);
+    } catch (error) {
+      return;
+    }
+    var position = saved === null ? NaN : parseInt(saved, 10);
+    if (!Number.isFinite(position) || position < 0) return;
+
+    function apply() {
+      var wrapper = getWrapper();
+      if (wrapper) wrapper.scrollTop = position;
+    }
+    window.requestAnimationFrame(apply);
+    window.setTimeout(apply, 100);
+  }
+
+  function init() {
+    var wrapper = getWrapper();
+    if (wrapper) {
+      wrapper.addEventListener('scroll', function () {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(savePosition, 100);
+      }, { passive: true });
+      restorePosition();
+    }
+    window.addEventListener('pagehide', savePosition);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+})();
+
+/**
  * Persistent-shell navigation for HADIRA.
  *
  * Only ordinary same-origin navigation links in the sidebar are enhanced.
- * Requests remain GETs; all forms, CSRF, redirects and permission checks still
- * run through CodeIgniter. Pages outside the shared shell fall back to normal
- * browser navigation.
+ * Page-specific-script views fall back to normal navigation so their scripts
+ * aren't re-executed inside a long-lived JavaScript runtime.
  */
 (function () {
   'use strict';
@@ -440,7 +500,11 @@ $(document).on('click', '.checkbox-table', function () {
         });
       }
 
-      if (!response.ok || !nextPage || !nextScriptsContainer || scriptNeedsFullLoad(sourceScripts)) {
+      var destinationHasPageScripts = nextDocument.body &&
+        nextDocument.body.getAttribute('data-hadira-page-scripted') === 'true';
+
+      if (!response.ok || !nextPage || !nextScriptsContainer ||
+          destinationHasPageScripts || scriptNeedsFullLoad(sourceScripts)) {
         window.location.assign(response.url || requestedUrl.href);
         return;
       }
@@ -502,8 +566,11 @@ $(document).on('click', '.checkbox-table', function () {
   document.addEventListener('click', function (event) {
     var target = event.target;
     if (!target || typeof target.closest !== 'function') return;
-    var link = target.closest('.sidebar a[data-hadira-nav][href], #hadira-page-content a[href]');
+    var link = target.closest('.sidebar a[data-hadira-nav][href]');
     if (!link) return;
+
+    // Don't keep a script-heavy source page alive during partial navigation.
+    if (document.body.getAttribute('data-hadira-page-scripted') === 'true') return;
 
     var navigationUrl = isPlainNavigationClick(event, link);
     if (!navigationUrl) return;
