@@ -183,7 +183,11 @@ $(document).on('click', '.checkbox-table', function () {
     if (incomingBody.getAttribute('data-hadira-page-scripted') === 'true') {
       event.preventDefault();
       var destination = window.__hadiraTurboDestination || window.location.href;
-      window.location.assign(destination);
+      if (destination === window.location.href) {
+        window.location.reload();
+      } else {
+        window.location.assign(destination);
+      }
       return;
     }
 
