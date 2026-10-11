@@ -503,7 +503,9 @@ $(document).on('click', '.checkbox-table', function () {
       var destinationHasPageScripts = nextDocument.body &&
         nextDocument.body.getAttribute('data-hadira-page-scripted') === 'true';
 
-      if (!response.ok || !nextPage || !nextScriptsContainer ||
+      var nextPageBody = nextPage && nextPage.querySelector('.content');
+
+      if (!response.ok || !nextPage || !nextScriptsContainer || !nextPageBody ||
           destinationHasPageScripts || scriptNeedsFullLoad(sourceScripts)) {
         window.location.assign(response.url || requestedUrl.href);
         return;
