@@ -4,7 +4,7 @@
 <?= $this->include("templates/head") ?>
 
 <body>
-   <div>
+   <div class="hadira-app-shell">
       <?= $this->include("templates/sidebar") ?>
       <div class="main-panel">
 
