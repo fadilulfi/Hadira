@@ -1,4 +1,4 @@
-<?= $this->extend('templates/admin_page_layout') ?>
+<?= $this->extend('templates/role_page_layout') ?>
 <?= $this->section('content') ?>
 <style>
   .progress-siswa {
