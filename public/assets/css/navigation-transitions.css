@@ -2,6 +2,66 @@
  * HADIRA navigation transitions and persistent-shell layout.
  * The sidebar and navbar stay mounted; only the page content is exchanged.
  */
+
+/*
+ * Desktop shell: a persistent sidebar column and a separately growing content
+ * column. On mobile, preserve Material Dashboard's existing off-canvas drawer.
+ */
+.hadira-app-shell {
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+}
+
+@media (min-width: 992px) {
+    .hadira-app-shell {
+        display: flex;
+        align-items: flex-start;
+        min-height: 100vh;
+    }
+
+    .hadira-app-shell > .sidebar {
+        position: sticky;
+        top: 0;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        flex: 0 0 260px;
+        width: 260px;
+        height: 100vh;
+        max-height: 100vh;
+        align-self: flex-start;
+        transform: none !important;
+    }
+
+    .hadira-app-shell > .sidebar .sidebar-wrapper {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+    }
+
+    .hadira-app-shell > .main-panel {
+        position: relative;
+        float: none;
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        min-height: 100vh;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .hadira-app-shell {
+        display: block;
+    }
+
+    .hadira-app-shell > .main-panel {
+        float: none;
+        width: 100%;
+        min-width: 0;
+    }
+}
+
 .main-panel > #hadira-page-content {
     display: contents;
 }
