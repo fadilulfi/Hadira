@@ -1,16 +1,22 @@
+<?php
+// Keep the shared shell stable while allowing safe sidebar-only Turbo visits.
+$pageContent = (string) $this->renderSection("content");
+$pageScripts = (string) $this->renderSection("scripts");
+$pageHasScripts = preg_match('/<script\\b/i', $pageContent . $pageScripts) === 1;
+?>
 <!DOCTYPE html>
 <html lang="id">
 
 <?= $this->include("templates/head") ?>
 
-<body>
+<body data-hadira-page-scripted="<?= $pageHasScripts ? 'true' : 'false'; ?>">
    <div>
-      <?= $this->include("templates/sidebar") ?>
+      <?= $this->include("templates/sidebar", ['pageHasScripts' => $pageHasScripts]) ?>
       <div class="main-panel">
 
          <?= $this->include("templates/navbar") ?>
 
-         <?= $this->renderSection("content") ?>
+         <?= $pageContent ?>
 
          <?= $this->include("templates/footer") ?>
 
@@ -24,7 +30,7 @@
 
    <?= $this->include("templates/js") ?>
 
-   <script>
+   <script data-turbo-eval="false">
       var BaseConfig = {
          baseURL: '<?= base_url() ?>',
          csrfTokenName: '<?= csrf_token() ?>',
@@ -33,7 +39,7 @@
       };
    </script>
 
-    <?= $this->renderSection("scripts") ?>
+   <?= $pageScripts ?>
 </body>
 
 </html>
