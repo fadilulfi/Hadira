@@ -3,17 +3,6 @@
  * The sidebar and navbar stay mounted; only the page content is exchanged.
  */
 
-html,
-body {
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-}
-
-body {
-    overscroll-behavior-y: none;
-}
-
 /*
  * Desktop shell: a persistent sidebar column and a separately growing content
  * column. On mobile, preserve Material Dashboard's existing off-canvas drawer.
@@ -99,7 +88,8 @@ body {
         min-width: 0;
         height: 100vh;
         max-height: 100vh;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
     }
@@ -123,14 +113,30 @@ body {
 }
 
 @media (max-width: 991.98px) {
+    /* Mobile uses normal document scrolling; do not trap content in 100vh. */
+    .hadira-app-shell.wrapper {
+        position: relative;
+        top: 0;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+
     .hadira-app-shell {
         display: block;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
     }
 
     .hadira-app-shell > .main-panel {
         float: none;
         width: 100%;
         min-width: 0;
+        height: auto;
+        max-height: none;
+        min-height: 100vh;
+        overflow: visible;
     }
 }
 
