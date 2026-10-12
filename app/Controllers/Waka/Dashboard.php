@@ -299,16 +299,75 @@ class Dashboard extends BaseController
 
     public function laporan()
     {
-        if($r=$this->guard())return$r;
-        $start=$this->request->getGet('mulai')?:date('Y-m-01');$end=$this->request->getGet('sampai')?:date('Y-m-d');$class=(int)($this->request->getGet('kelas')?:0);$teacher=(int)($this->request->getGet('guru')?:0);
-        $q=$this->scheduleQuery()->select("j.id_jadwal,j.hari,j.id_kelas,j.tahun_ajaran,j.semester,j.aktif,g.nama_guru,mp.nama_mapel,jp.nama_jam,jp.jam_mulai,jp.jam_selesai,k.tingkat,k.index_kelas,jr.jurusan,\n            COUNT(DISTINCT ap.id_siswa) terisi,\n            SUM(CASE WHEN ap.id_kehadiran=1 THEN 1 ELSE 0 END) hadir,\n            SUM(CASE WHEN ap.id_kehadiran=2 THEN 1 ELSE 0 END) sakit,\n            SUM(CASE WHEN ap.id_kehadiran=3 THEN 1 ELSE 0 END) izin,\n            SUM(CASE WHEN ap.id_kehadiran=4 THEN 1 ELSE 0 END) alpa",false)
-          ->join('tb_absensi_pelajaran ap','ap.id_jadwal=j.id_jadwal AND ap.tanggal >= '.$this->db->escape($start).' AND ap.tanggal <= '.$this->db->escape($end),'left')
-          ->groupBy('j.id_jadwal,j.hari,j.id_kelas,j.tahun_ajaran,j.semester,j.aktif,g.nama_guru,mp.nama_mapel,jp.nama_jam,jp.jam_mulai,jp.jam_selesai,k.tingkat,k.index_kelas,jr.jurusan')
-          ->orderBy('j.hari')->orderBy('jp.urutan');
-        if($class)$q->where('j.id_kelas',$class);if($teacher)$q->where('j.id_guru',$teacher);
-        $rows=$q->get()->getResultArray(); foreach($rows as &$row){$row['kelas_label']=trim(($row['tingkat']??'').' '.($row['jurusan']??'').' '.($row['index_kelas']??''));$row['total_siswa']=(int)$this->db->table('tb_siswa')->where('id_kelas',$row['id_kelas'])->countAllResults();}unset($row);
-        return view('waka/laporan',['title'=>'Rekap Absensi Waka','ctx'=>'waka-laporan','start'=>$start,'end'=>$end,'class'=>$class,'teacher'=>$teacher,'classes'=>$this->classes(),'teachers'=>$this->teachers(),'rows'=>$rows]);
+        if ($r = $this->guard()) return $r;
+
+        $start = $this->request->getGet('mulai') ?: date('Y-m-01');
+        $end = $this->request->getGet('sampai') ?: date('Y-m-d');
+        $class = (int) ($this->request->getGet('kelas') ?: 0);
+        $teacher = (int) ($this->request->getGet('guru') ?: 0);
+
+        $query = $this->scheduleQuery()
+            ->select("j.id_jadwal, j.hari, j.id_kelas, j.tahun_ajaran, j.semester, j.aktif,
+                g.nama_guru, mp.nama_mapel, jp.nama_jam, jp.jam_mulai, jp.jam_selesai,
+                k.tingkat, k.index_kelas, jr.jurusan,
+                COUNT(DISTINCT ap.id_siswa) terisi,
+                SUM(CASE WHEN ap.id_kehadiran = 1 THEN 1 ELSE 0 END) hadir,
+                SUM(CASE WHEN ap.id_kehadiran = 2 THEN 1 ELSE 0 END) sakit,
+                SUM(CASE WHEN ap.id_kehadiran = 3 THEN 1 ELSE 0 END) izin,
+                SUM(CASE WHEN ap.id_kehadiran = 4 THEN 1 ELSE 0 END) alpa", false)
+            ->join(
+                'tb_absensi_pelajaran ap',
+                'ap.id_jadwal = j.id_jadwal AND ap.tanggal >= ' . $this->db->escape($start) . ' AND ap.tanggal <= ' . $this->db->escape($end),
+                'left'
+            )
+            ->groupBy('j.id_jadwal, j.hari, j.id_kelas, j.tahun_ajaran, j.semester, j.aktif, g.nama_guru, mp.nama_mapel, jp.nama_jam, jp.jam_mulai, jp.jam_selesai, k.tingkat, k.index_kelas, jr.jurusan')
+            ->orderBy('j.hari')
+            ->orderBy('jp.urutan');
+
+        if ($class) $query->where('j.id_kelas', $class);
+        if ($teacher) $query->where('j.id_guru', $teacher);
+
+        $rows = $query->get()->getResultArray();
+
+        // Batch totals by class instead of querying students once per report row.
+        $classIds = array_values(array_unique(array_map(
+            static fn (array $row): int => (int) $row['id_kelas'],
+            $rows
+        )));
+        $studentCountsByClass = [];
+        if ($classIds !== []) {
+            $studentCountRows = $this->db->table('tb_siswa')
+                ->select('id_kelas')
+                ->selectCount('id_siswa', 'total_siswa')
+                ->whereIn('id_kelas', $classIds)
+                ->groupBy('id_kelas')
+                ->get()
+                ->getResultArray();
+
+            foreach ($studentCountRows as $studentCountRow) {
+                $studentCountsByClass[(int) $studentCountRow['id_kelas']] = (int) $studentCountRow['total_siswa'];
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $row['kelas_label'] = trim(($row['tingkat'] ?? '') . ' ' . ($row['jurusan'] ?? '') . ' ' . ($row['index_kelas'] ?? ''));
+            $row['total_siswa'] = $studentCountsByClass[(int) $row['id_kelas']] ?? 0;
+        }
+        unset($row);
+
+        return view('waka/laporan', [
+            'title' => 'Rekap Absensi Waka',
+            'ctx' => 'waka-laporan',
+            'start' => $start,
+            'end' => $end,
+            'class' => $class,
+            'teacher' => $teacher,
+            'classes' => $this->classes(),
+            'teachers' => $this->teachers(),
+            'rows' => $rows,
+        ]);
     }
+
     public function perizinan()
     {
         if ($r = $this->guard()) return $r;
