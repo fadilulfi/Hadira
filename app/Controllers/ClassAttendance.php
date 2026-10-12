@@ -281,7 +281,7 @@ class ClassAttendance extends BaseController
 
         $existingMap = $this->absensiModel->getMapForSession($idJadwal, $date);
         if ($existingMap === []) {
-            return redirect()->to(base_url('class-attendance?tanggal=' . rawurlencode($date)))
+            return redirect()->to($this->sourceListingUrl($source, $date))
                 ->with('error', 'Koreksi hanya tersedia untuk daftar hadir yang sudah tersimpan.');
         }
 
