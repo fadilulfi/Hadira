@@ -48,7 +48,7 @@ $guruMenu = [
 
 $bkMenu = [
     ['title' => 'Dashboard BK',          'url' => 'bk/dashboard',  'icon' => 'dashboard',        'context' => 'bk-dashboard'],
-    ['title' => 'Monitoring Kehadiran', 'url' => 'bk/monitoring', 'icon' => 'monitoring',       'context' => 'class-attendance'],
+    ['title' => 'Monitoring Kehadiran', 'url' => 'class-attendance?source=bk', 'icon' => 'monitoring',       'context' => 'class-attendance'],
     ['title' => 'Data Izin & Sakit',    'url' => 'bk/perizinan',  'icon' => 'medical_services', 'context' => 'bk-perizinan'],
     ['title' => 'Rekap Kehadiran',      'url' => 'bk/laporan',    'icon' => 'assessment',       'context' => 'bk-laporan'],
 ];
@@ -131,7 +131,8 @@ if ($isSuperAdmin) {
          <?php
             // Keep the parent menu active while viewing a specific class-attendance schedule.
             $isActive = $context === $item['context']
-                || ($item['context'] === 'teacher-absensi-kelas' && $context === 'teacher-absensi-kelas-form');
+                || ($item['context'] === 'teacher-absensi-kelas' && $context === 'teacher-absensi-kelas-form')
+                || (!$isSuperAdmin && $isWaka && $item['context'] === 'waka-monitoring' && $context === 'class-attendance');
          ?>
          <li class="nav-item <?= $isActive ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>" <?= $isActive ? 'aria-current="page"' : ''; ?>>
@@ -144,7 +145,7 @@ if ($isSuperAdmin) {
 <?php if ($adminItems !== []): ?>
          <li class="nav-item"><p class="nav-link py-1"><?= esc($adminSectionLabel); ?></p></li>
          <?php foreach ($adminItems as $item): ?>
-         <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
+         <li class="nav-item <?= ($context === $item['context'] || (!$isSuperAdmin && $isAdmin && $context === 'class-attendance' && $item['context'] === 'absen-siswa')) ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>">
                <i class="material-icons"><?= $item['icon']; ?></i>
                <p><?= esc($item['title']); ?></p>
