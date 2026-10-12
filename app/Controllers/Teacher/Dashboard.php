@@ -54,7 +54,7 @@ class Dashboard extends BaseController
             'ctx' => 'teacher-dashboard',
             'kelas' => $kelas,
             'summary' => [
-                'total_siswa' => $this->siswaModel->getSiswaCountByKelas($kelas['id_kelas']),
+                'total_siswa' => $todayAttendance['total'],
                 'hadir_hari_ini' => $todayAttendance['hadir'],
                 'sakit_hari_ini' => $todayAttendance['sakit'],
                 'izin_hari_ini' => $todayAttendance['izin'],
