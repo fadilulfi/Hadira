@@ -35,7 +35,7 @@ class AbsensiPelajaranModel extends Model
 
     public function getMapForSession(int $idJadwal, string $tanggal): array
     {
-        $rows = $this->select('id_siswa, id_kehadiran, waktu_absen, keterangan')
+        $rows = $this->select('id_absensi, id_siswa, id_kehadiran, waktu_absen, keterangan')
             ->where('id_jadwal', $idJadwal)
             ->where('tanggal', $tanggal)
             ->findAll();
