@@ -32,9 +32,22 @@ class Dashboard extends BaseController
     {
         return $this->db->table('tb_mapel')->where('aktif',1)->orderBy('nama_mapel')->get()->getResultArray();
     }
+    /**
+     * Return atomic lesson periods only. Existing combined blocks (e.g. 3-4)
+     * remain stored in tb_jam_pelajaran, but are generated/reused by jadwalSave().
+     */
     protected function jams(): array
     {
-        return $this->db->table('tb_jam_pelajaran')->where('aktif',1)->orderBy('urutan')->get()->getResultArray();
+        $rows = $this->db->table('tb_jam_pelajaran')
+            ->where('aktif', 1)
+            ->orderBy('urutan')
+            ->orderBy('jam_mulai')
+            ->get()
+            ->getResultArray();
+
+        return array_values(array_filter($rows, static function (array $jam): bool {
+            return preg_match('/\d+\s*[-–]\s*\d+/u', (string) $jam['nama_jam']) !== 1;
+        }));
     }
     protected function dayName(int $day): string
     {
@@ -179,34 +192,224 @@ class Dashboard extends BaseController
 
     public function jadwal()
     {
-        if($r=$this->guard())return$r;
-        $day=(int)($this->request->getGet('hari')?:0); $teacher=(int)($this->request->getGet('guru')?:0); $class=(int)($this->request->getGet('kelas')?:0);
-        $editId=(int)($this->request->getGet('edit')?:0);
-        $q=$this->scheduleQuery()->orderBy('j.hari')->orderBy('jp.urutan'); if($day)$q->where('j.hari',$day); if($teacher)$q->where('j.id_guru',$teacher); if($class)$q->where('j.id_kelas',$class);
-        $rows=$q->get()->getResultArray();
-        $editRow=$editId?( $this->db->table('tb_jadwal_pelajaran')->where('id_jadwal',$editId)->get()->getRowArray() ?: null ):null;
-        return view('waka/jadwal',['title'=>'Jadwal Pelajaran','ctx'=>'waka-jadwal','rows'=>$rows,'editRow'=>$editRow,'teachers'=>$this->teachers(),'classes'=>$this->classes(),'mapels'=>$this->mapels(),'jams'=>$this->jams(),'day'=>$day,'teacher'=>$teacher,'class'=>$class]);
+        if ($r = $this->guard()) return $r;
+
+        $day = (int) ($this->request->getGet('hari') ?: 0);
+        $teacher = (int) ($this->request->getGet('guru') ?: 0);
+        $class = (int) ($this->request->getGet('kelas') ?: 0);
+        $editId = (int) ($this->request->getGet('edit') ?: 0);
+
+        $query = $this->scheduleQuery()->orderBy('j.hari')->orderBy('jp.urutan');
+        if ($day) $query->where('j.hari', $day);
+        if ($teacher) $query->where('j.id_guru', $teacher);
+        if ($class) $query->where('j.id_kelas', $class);
+        $rows = $query->get()->getResultArray();
+
+        $editRow = $editId
+            ? ($this->db->table('tb_jadwal_pelajaran j')
+                ->select('j.*, jp.nama_jam, jp.jam_mulai, jp.jam_selesai, jp.urutan AS jam_urutan')
+                ->join('tb_jam_pelajaran jp', 'jp.id_jam = j.id_jam')
+                ->where('j.id_jadwal', $editId)
+                ->get()
+                ->getRowArray() ?: null)
+            : null;
+
+        $periods = $this->jams();
+        $editStartId = (int) ($editRow['id_jam'] ?? 0);
+        $editDuration = 1;
+
+        if ($editRow && preg_match('/(\d+)\s*[-–]\s*(\d+)/u', (string) $editRow['nama_jam'], $matches)) {
+            $startOrder = (int) $matches[1];
+            $endOrder = (int) $matches[2];
+            $editDuration = max(1, min(3, $endOrder - $startOrder + 1));
+
+            foreach ($periods as $period) {
+                if ((int) $period['urutan'] === $startOrder) {
+                    $editStartId = (int) $period['id_jam'];
+                    break;
+                }
+            }
+        }
+
+        return view('waka/jadwal', [
+            'title' => 'Jadwal Pelajaran',
+            'ctx' => 'waka-jadwal',
+            'rows' => $rows,
+            'editRow' => $editRow,
+            'teachers' => $this->teachers(),
+            'classes' => $this->classes(),
+            'mapels' => $this->mapels(),
+            'jams' => $periods,
+            'editStartId' => $editStartId,
+            'editDuration' => $editDuration,
+            'day' => $day,
+            'teacher' => $teacher,
+            'class' => $class,
+        ]);
     }
 
     public function jadwalSave()
     {
-        if($r=$this->guard())return$r;
-        $id=(int)$this->request->getPost('id_jadwal'); $day=(int)$this->request->getPost('hari'); $guru=(int)$this->request->getPost('id_guru'); $mapel=(int)$this->request->getPost('id_mapel'); $kelas=(int)$this->request->getPost('id_kelas'); $jam=(int)$this->request->getPost('id_jam'); $year=trim((string)$this->request->getPost('tahun_ajaran'))?:'2026/2027'; $semester=$this->request->getPost('semester')==='Genap'?'Genap':'Ganjil';
-        if(!in_array($day,[1,2,3,4,5,6],true)||!$guru||!$mapel||!$kelas||!$jam)return redirect()->back()->with('error','Guru, mapel, kelas, hari, dan jam wajib diisi.');
-        $dup=$this->db->table('tb_jadwal_pelajaran')->where(['hari'=>$day,'id_guru'=>$guru,'id_mapel'=>$mapel,'id_kelas'=>$kelas,'id_jam'=>$jam,'tahun_ajaran'=>$year,'semester'=>$semester]); if($id)$dup->where('id_jadwal !=',$id);
-        if($dup->countAllResults())return redirect()->back()->with('error','Jadwal yang sama sudah ada.');
+        if ($r = $this->guard()) return $r;
 
-        // Satu guru tidak boleh mengajar dua kelas pada jam yang sama.
-        $teacherBusy=$this->db->table('tb_jadwal_pelajaran')->where(['hari'=>$day,'id_guru'=>$guru,'id_jam'=>$jam,'tahun_ajaran'=>$year,'semester'=>$semester,'aktif'=>1]); if($id)$teacherBusy->where('id_jadwal !=',$id);
-        if($teacherBusy->countAllResults())return redirect()->back()->with('error','Guru tersebut sudah memiliki jadwal pada jam yang sama.');
+        $id = (int) $this->request->getPost('id_jadwal');
+        $day = (int) $this->request->getPost('hari');
+        $teacher = (int) $this->request->getPost('id_guru');
+        $mapel = (int) $this->request->getPost('id_mapel');
+        $class = (int) $this->request->getPost('id_kelas');
+        $startPeriodId = (int) $this->request->getPost('id_jam_mulai');
+        $duration = (int) $this->request->getPost('durasi_jp');
+        $year = trim((string) $this->request->getPost('tahun_ajaran')) ?: '2026/2027';
+        $semester = $this->request->getPost('semester') === 'Genap' ? 'Genap' : 'Ganjil';
 
-        // Satu kelas tidak boleh memiliki dua pelajaran pada jam yang sama.
-        $classBusy=$this->db->table('tb_jadwal_pelajaran')->where(['hari'=>$day,'id_kelas'=>$kelas,'id_jam'=>$jam,'tahun_ajaran'=>$year,'semester'=>$semester,'aktif'=>1]); if($id)$classBusy->where('id_jadwal !=',$id);
-        if($classBusy->countAllResults())return redirect()->back()->with('error','Kelas tersebut sudah memiliki jadwal pada jam yang sama.');
-        $data=['hari'=>$day,'id_guru'=>$guru,'id_mapel'=>$mapel,'id_kelas'=>$kelas,'id_jam'=>$jam,'tahun_ajaran'=>$year,'semester'=>$semester,'aktif'=>(int)($this->request->getPost('aktif')??1),'updated_at'=>date('Y-m-d H:i:s')];
-        if($id)$this->db->table('tb_jadwal_pelajaran')->where('id_jadwal',$id)->update($data);else{$data['created_at']=date('Y-m-d H:i:s');$this->db->table('tb_jadwal_pelajaran')->insert($data);}
-        return redirect()->to('/waka/jadwal')->with('success','Jadwal pelajaran berhasil disimpan.');
+        if (!in_array($day, [1, 2, 3, 4, 5, 6], true)
+            || !$teacher || !$mapel || !$class || !$startPeriodId
+            || !in_array($duration, [1, 2, 3], true)) {
+            return redirect()->back()->withInput()->with('error', 'Lengkapi data jadwal dan pilih durasi 1, 2, atau 3 JP.');
+        }
+
+        $periods = $this->jams();
+        $periodsById = [];
+        $periodsByOrder = [];
+        foreach ($periods as $period) {
+            $periodsById[(int) $period['id_jam']] = $period;
+            $order = (int) $period['urutan'];
+            if (isset($periodsByOrder[$order])) {
+                return redirect()->back()->withInput()->with('error', 'Urutan JP harus unik untuk setiap jam pelajaran. Periksa menu Jam Pelajaran.');
+            }
+            $periodsByOrder[$order] = $period;
+        }
+
+        $startPeriod = $periodsById[$startPeriodId] ?? null;
+        if (!$startPeriod) {
+            return redirect()->back()->withInput()->with('error', 'Jam mulai tidak valid atau sudah nonaktif.');
+        }
+
+        $startOrder = (int) $startPeriod['urutan'];
+        $endOrder = $startOrder + $duration - 1;
+        $endPeriod = $periodsByOrder[$endOrder] ?? null;
+
+        if (!$endPeriod) {
+            return redirect()->back()->withInput()->with('error', 'Durasi yang dipilih membutuhkan JP berurutan. Lengkapi urutan pada menu Jam Pelajaran.');
+        }
+
+        $startTime = (string) $startPeriod['jam_mulai'];
+        $endTime = (string) $endPeriod['jam_selesai'];
+        if ($startTime === '' || $endTime === '' || $endTime <= $startTime) {
+            return redirect()->back()->withInput()->with('error', 'Rentang waktu JP tidak valid. Periksa jam mulai dan selesai pada menu Jam Pelajaran.');
+        }
+
+        $db = $this->db;
+        $db->transBegin();
+
+        // One schedule row represents the full time range. For 2-3 JP, reuse
+        // an existing configured block or create a range block such as "3-4".
+        $idJam = $startPeriodId;
+        if ($duration > 1) {
+            $blockName = $startOrder . '-' . $endOrder;
+            $existingBlock = $db->table('tb_jam_pelajaran')
+                ->where('nama_jam', $blockName)
+                ->get()
+                ->getRowArray();
+
+            if ($existingBlock) {
+                if (!(int) $existingBlock['aktif']) {
+                    $db->transRollback();
+                    return redirect()->back()->withInput()->with('error', "Blok JP {$blockName} sedang nonaktif. Aktifkan blok tersebut di menu Jam Pelajaran terlebih dahulu.");
+                }
+                if ((string) $existingBlock['jam_mulai'] !== $startTime
+                    || (string) $existingBlock['jam_selesai'] !== $endTime
+                    || (int) $existingBlock['urutan'] !== $startOrder) {
+                    $db->transRollback();
+                    return redirect()->back()->withInput()->with('error', "Blok JP {$blockName} sudah ada dengan waktu berbeda. Sesuaikan waktu blok di menu Jam Pelajaran terlebih dahulu.");
+                }
+                $idJam = (int) $existingBlock['id_jam'];
+            } else {
+                $now = date('Y-m-d H:i:s');
+                $inserted = $db->table('tb_jam_pelajaran')->insert([
+                    'nama_jam' => $blockName,
+                    'jam_mulai' => $startTime,
+                    'jam_selesai' => $endTime,
+                    'urutan' => $startOrder,
+                    'aktif' => 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+                if (!$inserted) {
+                    $db->transRollback();
+                    return redirect()->back()->withInput()->with('error', "Gagal membuat blok JP {$blockName}. Periksa pengaturan jam pelajaran.");
+                }
+                $idJam = (int) $db->insertID();
+            }
+        }
+
+        // Check overlaps by actual times, not just by matching id_jam. This
+        // prevents collisions between e.g. JP 3-4 and a separate JP 4 lesson.
+        $teacherBusy = $db->table('tb_jadwal_pelajaran j')
+            ->join('tb_jam_pelajaran jp', 'jp.id_jam = j.id_jam')
+            ->where('j.hari', $day)
+            ->where('j.id_guru', $teacher)
+            ->where('j.tahun_ajaran', $year)
+            ->where('j.semester', $semester)
+            ->where('j.aktif', 1)
+            ->where('jp.jam_mulai <', $endTime)
+            ->where('jp.jam_selesai >', $startTime);
+        if ($id) $teacherBusy->where('j.id_jadwal !=', $id);
+
+        if ($teacherBusy->countAllResults() > 0) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('error', 'Jadwal guru bertabrakan dengan jam lain pada hari tersebut.');
+        }
+
+        $classBusy = $db->table('tb_jadwal_pelajaran j')
+            ->join('tb_jam_pelajaran jp', 'jp.id_jam = j.id_jam')
+            ->where('j.hari', $day)
+            ->where('j.id_kelas', $class)
+            ->where('j.tahun_ajaran', $year)
+            ->where('j.semester', $semester)
+            ->where('j.aktif', 1)
+            ->where('jp.jam_mulai <', $endTime)
+            ->where('jp.jam_selesai >', $startTime);
+        if ($id) $classBusy->where('j.id_jadwal !=', $id);
+
+        if ($classBusy->countAllResults() > 0) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('error', 'Kelas sudah memiliki pelajaran lain pada rentang waktu tersebut.');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $data = [
+            'hari' => $day,
+            'id_guru' => $teacher,
+            'id_mapel' => $mapel,
+            'id_kelas' => $class,
+            'id_jam' => $idJam,
+            'tahun_ajaran' => $year,
+            'semester' => $semester,
+            'aktif' => (int) ($this->request->getPost('aktif') ?? 1),
+            'updated_at' => $now,
+        ];
+
+        if ($id) {
+            $saved = $db->table('tb_jadwal_pelajaran')->where('id_jadwal', $id)->update($data);
+        } else {
+            $data['created_at'] = $now;
+            $saved = $db->table('tb_jadwal_pelajaran')->insert($data);
+        }
+
+        if (!$saved) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('error', 'Jadwal gagal disimpan. Periksa kembali data dan jam pelajaran.');
+        }
+
+        $db->transComplete();
+        if (!$db->transStatus()) {
+            return redirect()->back()->withInput()->with('error', 'Jadwal gagal disimpan karena konflik data.');
+        }
+
+        return redirect()->to('/waka/jadwal')->with('success', 'Jadwal berhasil disimpan.');
     }
+
     public function jadwalToggle($id)
     {
         if($r=$this->guard())return$r; $row=$this->db->table('tb_jadwal_pelajaran')->where('id_jadwal',(int)$id)->get()->getRowArray(); if(!$row)return redirect()->back()->with('error','Jadwal tidak ditemukan.');
