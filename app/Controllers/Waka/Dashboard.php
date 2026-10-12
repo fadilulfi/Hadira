@@ -218,7 +218,7 @@ class Dashboard extends BaseController
         $editStartId = (int) ($editRow['id_jam'] ?? 0);
         $editDuration = 1;
 
-        if ($editRow && preg_match('/^\\s*(\\d+)\\s*[-–]\\s*(\\d+)\\s*$/u', (string) $editRow['nama_jam'], $matches)) {
+        if ($editRow && preg_match('/^\s*(\d+)\s*[-–]\s*(\d+)\s*$/u', (string) $editRow['nama_jam'], $matches)) {
             $startOrder = (int) $matches[1];
             $endOrder = (int) $matches[2];
             $editDuration = max(1, min(3, $endOrder - $startOrder + 1));
