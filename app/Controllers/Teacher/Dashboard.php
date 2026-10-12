@@ -46,6 +46,7 @@ class Dashboard extends BaseController
 
         $now = Time::now();
         $today = $now->toDateString();
+        $todayAttendance = $this->presensiSiswaModel->getAttendanceSummaryForDate($today, $kelas['id_kelas']);
 
         // Basic stats
         $data = [
@@ -54,10 +55,10 @@ class Dashboard extends BaseController
             'kelas' => $kelas,
             'summary' => [
                 'total_siswa' => $this->siswaModel->getSiswaCountByKelas($kelas['id_kelas']),
-                'hadir_hari_ini' => count($this->presensiSiswaModel->getPresensiByKehadiran('1', $today, $kelas['id_kelas'])),
-                'sakit_hari_ini' => count($this->presensiSiswaModel->getPresensiByKehadiran('2', $today, $kelas['id_kelas'])),
-                'izin_hari_ini' => count($this->presensiSiswaModel->getPresensiByKehadiran('3', $today, $kelas['id_kelas'])),
-                'alfa_hari_ini' => count($this->presensiSiswaModel->getPresensiByKehadiran('4', $today, $kelas['id_kelas']))
+                'hadir_hari_ini' => $todayAttendance['hadir'],
+                'sakit_hari_ini' => $todayAttendance['sakit'],
+                'izin_hari_ini' => $todayAttendance['izin'],
+                'alfa_hari_ini' => $todayAttendance['alfa']
             ]
         ];
 
@@ -109,12 +110,7 @@ class Dashboard extends BaseController
         $now = \CodeIgniter\I18n\Time::now();
         $today = $now->toDateString();
 
-        $summary = [
-            'hadir' => count($this->presensiSiswaModel->getPresensiByKehadiran('1', $today, $kelas['id_kelas'])),
-            'sakit' => count($this->presensiSiswaModel->getPresensiByKehadiran('2', $today, $kelas['id_kelas'])),
-            'izin' => count($this->presensiSiswaModel->getPresensiByKehadiran('3', $today, $kelas['id_kelas'])),
-            'alfa' => count($this->presensiSiswaModel->getPresensiByKehadiran('4', $today, $kelas['id_kelas']))
-        ];
+        $summary = $this->presensiSiswaModel->getAttendanceSummaryForDate($today, $kelas['id_kelas']);
 
         $schoolConfigurations = new \Config\School();
         $generalSettings = $schoolConfigurations::$generalSettings;
