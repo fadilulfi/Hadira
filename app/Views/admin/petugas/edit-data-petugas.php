@@ -13,7 +13,23 @@
 
                   <form action="<?= base_url('admin/petugas/edit'); ?>" method="post">
                      <?= csrf_field() ?>
-                     <?php $validation = \Config\Services::validation(); ?>
+                     <?php
+                     $validation = \Config\Services::validation();
+                     $selectedRole = old('role') ?? ($oldInput['role'] ?? null);
+                     if ($selectedRole === null || $selectedRole === '') {
+                        $assignedGroups = $data['groups'] ?? [];
+                        $selectedRole = 'scanner';
+                        foreach ($roles as $candidateRole) {
+                           if (in_array($candidateRole->value, $assignedGroups, true)) {
+                              $selectedRole = $candidateRole->value;
+                              // Prefer Super Admin when an account has multiple groups.
+                              if ($selectedRole === 'superadmin') {
+                                 break;
+                              }
+                           }
+                        }
+                     }
+                     ?>
 
                      <?php if (session()->getFlashdata('msg')): ?>
                         <div class="pb-2">
@@ -60,7 +76,7 @@
                            <select class="custom-select <?= $validation->getError('role') ? 'is-invalid' : ''; ?>" id="role" name="role">
                               <option value="">--Pilih role--</option>
                               <?php foreach ($roles as $role): ?>
-                                 <option value="<?= $role->value ?>" <?= (old('role') ?? $oldInput['role'] ?? ($data['groups'][0] ?? 'scanner')) == $role->value ? 'selected' : ''; ?>>
+                                 <option value="<?= esc($role->value) ?>" <?= $selectedRole === $role->value ? 'selected' : ''; ?>>
                                     <?= $role->label() ?>
                                  </option>
                               <?php endforeach; ?>
@@ -70,13 +86,14 @@
                            </div>
                         </div>
                         <div class="col-md-6">
-                           <label for="id_guru">Hubungkan ke Guru (Opsional)</label>
+                           <label for="id_guru">Profil Guru terkait (opsional)</label>
                            <select class="custom-select" id="id_guru" name="id_guru">
                               <option value="">--Pilih Guru--</option>
                               <?php foreach ($guru as $g): ?>
                                  <option value="<?= $g['id_guru']; ?>" <?= (old('id_guru') ?? $data['id_guru']) == $g['id_guru'] ? 'selected' : ''; ?>><?= $g['nama_guru']; ?></option>
                               <?php endforeach; ?>
                            </select>
+                           <small class="form-text text-muted">Guru murni dikelola di menu Data Guru. Tautan ini hanya untuk akun petugas yang juga memiliki tugas sebagai guru.</small>
                         </div>
                      </div>
 
