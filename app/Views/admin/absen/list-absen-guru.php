@@ -32,14 +32,14 @@
                   <td><b><?= $value['jam_keluar'] ?? '-'; ?></b></td>
                   <td><?= $value['keterangan'] ?? '-'; ?></td>
                   <td>
-                     <?php if (!$lewat && can_edit_attendance()): ?>
+                     <?php if (!$lewat && can_override_attendance()): ?>
                         <button data-toggle="modal" data-target="#ubahModal" onclick="getDataKehadiran(<?= $value['id_presensi'] ?? '-1'; ?>, <?= $value['id_guru']; ?>)" class="btn btn-info p-2"
                            id="<?= $value['id_guru']; ?>">
                            <i class="material-icons">edit</i>
                            Edit
                         </button>
                      <?php else: ?>
-                        <button class="btn btn-disabled p-2">No Action</button>
+                        <span class="badge badge-secondary p-2">Monitoring saja</span>
                      <?php endif; ?>
                   </td>
                </tr>
