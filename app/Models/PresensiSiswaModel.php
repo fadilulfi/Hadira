@@ -136,23 +136,104 @@ class PresensiSiswaModel extends Model implements PresensiInterface
    }
 
    /**
-    * Get attendance trend for last N days
-    * @return array ['hadir' => [], 'sakit' => [], 'izin' => [], 'alfa' => [], 'belum_absen' => []]
+    * Return attendance counts without loading matching attendance rows into PHP.
+    * Anyone without a valid (Hadir/Sakit/Izin) record counts as not present.
+    */
+   public function getAttendanceSummaryForDate(string $tanggal, $idKelas = null): array
+   {
+      $query = $this->db->table('tb_presensi_siswa ps')
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 1 THEN 1 ELSE 0 END) AS hadir", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 2 THEN 1 ELSE 0 END) AS sakit", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 3 THEN 1 ELSE 0 END) AS izin", false)
+         ->select("COUNT(DISTINCT CASE WHEN ps.id_kehadiran IN (1, 2, 3) THEN ps.id_siswa END) AS tercatat", false)
+         ->where('ps.tanggal', $tanggal);
+
+      if (!empty($idKelas)) {
+         $query->join('tb_siswa s', 's.id_siswa = ps.id_siswa')
+            ->where('s.id_kelas', (int) $idKelas);
+      }
+
+      $row = $query->get()->getRowArray() ?? [];
+      $totalQuery = $this->db->table('tb_siswa')->selectCount('id_siswa', 'total_siswa');
+      if (!empty($idKelas)) {
+         $totalQuery->where('id_kelas', (int) $idKelas);
+      }
+      $totalRow = $totalQuery->get()->getRowArray() ?? [];
+      $totalSiswa = (int) ($totalRow['total_siswa'] ?? 0);
+      $tercatat = (int) ($row['tercatat'] ?? 0);
+
+      return [
+         'hadir' => (int) ($row['hadir'] ?? 0),
+         'sakit' => (int) ($row['sakit'] ?? 0),
+         'izin' => (int) ($row['izin'] ?? 0),
+         'alfa' => max(0, $totalSiswa - $tercatat),
+      ];
+   }
+
+   /**
+    * Get attendance trend for the last N calendar days using grouped queries.
+    *
+    * @return array<string, list<int>>
     */
    public function getAttendanceTrend(int $days = 7, $idKelas = null): array
    {
-      $now = Time::now();
       $result = ['hadir' => [], 'sakit' => [], 'izin' => [], 'alfa' => [], 'belum_absen' => []];
+      $days = max(0, $days);
+      if ($days === 0) {
+         return $result;
+      }
+
+      $now = Time::now();
+      $dates = [];
+      for ($offset = $days - 1; $offset >= 0; $offset--) {
+         $dates[] = $now->subDays($offset)->toDateString();
+      }
+
+      $startDate = $dates[0];
+      $endDate = $dates[count($dates) - 1];
+      $today = $now->toDateString();
+      $nowTime = $now->toTimeString();
+
+      $holidayRows = $this->db->table('tb_hari_libur')
+         ->select('tanggal')
+         ->where('tanggal >=', $startDate)
+         ->where('tanggal <=', $endDate)
+         ->get()
+         ->getResultArray();
+      $holidayDates = array_fill_keys(array_column($holidayRows, 'tanggal'), true);
+
+      $attendanceQuery = $this->db->table('tb_presensi_siswa ps')
+         ->select('ps.tanggal')
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 1 THEN 1 ELSE 0 END) AS hadir", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 2 THEN 1 ELSE 0 END) AS sakit", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 3 THEN 1 ELSE 0 END) AS izin", false)
+         ->select("COUNT(DISTINCT CASE WHEN ps.id_kehadiran IN (1, 2, 3) THEN ps.id_siswa END) AS tercatat", false)
+         ->where('ps.tanggal >=', $startDate)
+         ->where('ps.tanggal <=', $endDate);
+
+      if (!empty($idKelas)) {
+         $attendanceQuery->join('tb_siswa s', 's.id_siswa = ps.id_siswa')
+            ->where('s.id_kelas', (int) $idKelas);
+      }
+
+      $attendanceRows = $attendanceQuery->groupBy('ps.tanggal')->get()->getResultArray();
+      $attendanceByDate = [];
+      foreach ($attendanceRows as $row) {
+         $attendanceByDate[$row['tanggal']] = $row;
+      }
+
+      $totalQuery = $this->db->table('tb_siswa')->selectCount('id_siswa', 'total_siswa');
+      if (!empty($idKelas)) {
+         $totalQuery->where('id_kelas', (int) $idKelas);
+      }
+      $totalRow = $totalQuery->get()->getRowArray() ?? [];
+      $totalSiswa = (int) ($totalRow['total_siswa'] ?? 0);
 
       $schoolConfigurations = new \Config\School();
-      $generalSettings = $schoolConfigurations::$generalSettings;
-      $jamPulangStandard = $generalSettings->jam_pulang_standard ?? '14:00:00';
-      $holidayModel = new \App\Models\HariLiburModel();
+      $jamPulangStandard = $schoolConfigurations::$generalSettings->jam_pulang_standard ?? '14:00:00';
 
-      for ($i = $days - 1; $i >= 0; $i--) {
-         $date = $now->subDays($i)->toDateString();
-
-         if ($holidayModel->isHoliday($date)) {
+      foreach ($dates as $date) {
+         if (isset($holidayDates[$date])) {
             $result['hadir'][] = 0;
             $result['sakit'][] = 0;
             $result['izin'][] = 0;
@@ -161,22 +242,19 @@ class PresensiSiswaModel extends Model implements PresensiInterface
             continue;
          }
 
-         $isToday = ($date == $now->toDateString());
-         $isAfterSchool = (date('Y-m-d') > $date) || ($isToday && $now->toTimeString() > $jamPulangStandard);
+         $row = $attendanceByDate[$date] ?? [];
+         $hadir = (int) ($row['hadir'] ?? 0);
+         $sakit = (int) ($row['sakit'] ?? 0);
+         $izin = (int) ($row['izin'] ?? 0);
+         $tercatat = (int) ($row['tercatat'] ?? 0);
+         $notPresent = max(0, $totalSiswa - $tercatat);
+         $isAfterSchool = ($date < $today) || ($date === $today && $nowTime > $jamPulangStandard);
 
-         $result['hadir'][] = count($this->getPresensiByKehadiran('1', $date, $idKelas));
-         $result['sakit'][] = count($this->getPresensiByKehadiran('2', $date, $idKelas));
-         $result['izin'][] = count($this->getPresensiByKehadiran('3', $date, $idKelas));
-         
-         $notPresentCount = count($this->getPresensiByKehadiran('4', $date, $idKelas));
-         
-         if ($isAfterSchool) {
-            $result['alfa'][] = $notPresentCount;
-            $result['belum_absen'][] = 0;
-         } else {
-            $result['alfa'][] = 0;
-            $result['belum_absen'][] = $notPresentCount;
-         }
+         $result['hadir'][] = $hadir;
+         $result['sakit'][] = $sakit;
+         $result['izin'][] = $izin;
+         $result['alfa'][] = $isAfterSchool ? $notPresent : 0;
+         $result['belum_absen'][] = $isAfterSchool ? 0 : $notPresent;
       }
 
       return $result;
@@ -222,8 +300,13 @@ class PresensiSiswaModel extends Model implements PresensiInterface
     */
    public function getConsecutiveAbsences(int $consecutiveDays = 3, $idKelas = null): array
    {
-      // Get the last N active attendance dates
-      $dates = $this->select('tanggal')
+      if ($consecutiveDays < 1) {
+         return [];
+      }
+
+      // Preserve the current definition: use the latest N dates present in attendance.
+      $dates = $this->db->table('tb_presensi_siswa')
+         ->select('tanggal')
          ->groupBy('tanggal')
          ->orderBy('tanggal', 'DESC')
          ->limit($consecutiveDays)
@@ -235,46 +318,56 @@ class PresensiSiswaModel extends Model implements PresensiInterface
       }
 
       $dateStrings = array_column($dates, 'tanggal');
+      $quotedDates = implode(', ', array_map(
+         fn (string $date): string => $this->db->escape($date),
+         $dateStrings
+      ));
 
-      // Find students who are NOT in (Hadir, Sakit, Izin) for ALL these dates
-      // In this system, Alfa means NO entry in tb_presensi_siswa for that date OR id_kehadiran = 4
-      
+      // Resolve all candidates with one grouped query instead of per-student/per-day queries.
       $builder = $this->db->table('tb_siswa')
          ->select('tb_siswa.*, tb_kelas.tingkat, tb_kelas.index_kelas, tb_jurusan.jurusan')
          ->join('tb_kelas', 'tb_kelas.id_kelas = tb_siswa.id_kelas')
-         ->join('tb_jurusan', 'tb_jurusan.id = tb_kelas.id_jurusan');
+         ->join('tb_jurusan', 'tb_jurusan.id = tb_kelas.id_jurusan')
+         ->join(
+            'tb_presensi_siswa recent_presence',
+            "recent_presence.id_siswa = tb_siswa.id_siswa AND recent_presence.tanggal IN ({$quotedDates})",
+            'left',
+            false
+         )
+         ->where(
+            'EXISTS (SELECT 1 FROM tb_presensi_siswa any_presence WHERE any_presence.id_siswa = tb_siswa.id_siswa)',
+            null,
+            false
+         );
 
-      if ($idKelas) {
-         $builder->where('tb_siswa.id_kelas', $idKelas);
+      if (!empty($idKelas)) {
+         $builder->where('tb_siswa.id_kelas', (int) $idKelas);
       }
 
-      $students = $builder->get()->getResultArray();
-      $flaggedStudents = [];
+      $builder->groupBy([
+         'tb_siswa.id_siswa',
+         'tb_siswa.nis',
+         'tb_siswa.nama_siswa',
+         'tb_siswa.id_kelas',
+         'tb_siswa.jenis_kelamin',
+         'tb_siswa.no_hp',
+         'tb_siswa.poin_pelanggaran',
+         'tb_siswa.unique_code',
+         'tb_siswa.rfid_code',
+         'tb_kelas.tingkat',
+         'tb_kelas.index_kelas',
+         'tb_jurusan.jurusan',
+      ])->having(
+         'SUM(CASE WHEN recent_presence.id_kehadiran IN (1, 2, 3) THEN 1 ELSE 0 END) = 0',
+         null,
+         false
+      );
 
-      foreach ($students as $student) {
-         // Skip siswa baru yang belum pernah absen sama sekali (misal via import CSV)
-         $totalPresensi = $this->where('id_siswa', $student['id_siswa'])->countAllResults();
-         if ($totalPresensi === 0) {
-            continue;
-         }
-
-         $absentCount = 0;
-         foreach ($dateStrings as $date) {
-            $presensi = $this->where([
-               'id_siswa' => $student['id_siswa'],
-               'tanggal' => $date
-            ])->whereIn('id_kehadiran', ['1', '2', '3'])->first();
-
-            if (!$presensi) {
-               $absentCount++;
-            }
-         }
-
-         if ($absentCount >= $consecutiveDays) {
-            $student['days_count'] = $absentCount;
-            $flaggedStudents[] = $student;
-         }
+      $flaggedStudents = $builder->get()->getResultArray();
+      foreach ($flaggedStudents as &$student) {
+         $student['days_count'] = $consecutiveDays;
       }
+      unset($student);
 
       return $flaggedStudents;
    }
