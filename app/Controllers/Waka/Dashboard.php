@@ -215,11 +215,86 @@ class Dashboard extends BaseController
 
     public function monitoring()
     {
-        if($r=$this->guard())return$r;
-        $date=$this->request->getGet('tanggal')?:date('Y-m-d'); $class=(int)($this->request->getGet('kelas')?:0); $teacher=(int)($this->request->getGet('guru')?:0);
-        $q=$this->scheduleQuery()->where('j.hari',date('N',strtotime($date)))->where('j.aktif',1)->orderBy('jp.urutan'); if($class)$q->where('j.id_kelas',$class);if($teacher)$q->where('j.id_guru',$teacher); $rows=$q->get()->getResultArray();
-        foreach($rows as &$row){$row['kelas_label']=trim(($row['tingkat']??'').' '.($row['jurusan']??'').' '.($row['index_kelas']??''));$row['total_siswa']=(int)$this->db->table('tb_siswa')->where('id_kelas',$row['id_kelas'])->countAllResults();$row['terisi']=(int)$this->db->table('tb_absensi_pelajaran')->where('id_jadwal',$row['id_jadwal'])->where('tanggal',$date)->countAllResults();$row['hadir']=(int)$this->db->table('tb_absensi_pelajaran')->where(['id_jadwal'=>$row['id_jadwal'],'tanggal'=>$date,'id_kehadiran'=>1])->countAllResults();$row['izin']=(int)$this->db->table('tb_absensi_pelajaran')->where(['id_jadwal'=>$row['id_jadwal'],'tanggal'=>$date,'id_kehadiran'=>3])->countAllResults();$row['sakit']=(int)$this->db->table('tb_absensi_pelajaran')->where(['id_jadwal'=>$row['id_jadwal'],'tanggal'=>$date,'id_kehadiran'=>2])->countAllResults();$row['alpa']=(int)$this->db->table('tb_absensi_pelajaran')->where(['id_jadwal'=>$row['id_jadwal'],'tanggal'=>$date,'id_kehadiran'=>4])->countAllResults();$row['persen']=$row['total_siswa']?round(($row['terisi']/$row['total_siswa'])*100):0;}unset($row);
-        return view('waka/monitoring',['title'=>'Monitoring Absensi','ctx'=>'waka-monitoring','date'=>$date,'class'=>$class,'teacher'=>$teacher,'classes'=>$this->classes(),'teachers'=>$this->teachers(),'rows'=>$rows]);
+        if ($r = $this->guard()) return $r;
+
+        $date = $this->request->getGet('tanggal') ?: date('Y-m-d');
+        $class = (int) ($this->request->getGet('kelas') ?: 0);
+        $teacher = (int) ($this->request->getGet('guru') ?: 0);
+
+        $query = $this->scheduleQuery()
+            ->where('j.hari', date('N', strtotime($date)))
+            ->where('j.aktif', 1)
+            ->orderBy('jp.urutan');
+        if ($class) $query->where('j.id_kelas', $class);
+        if ($teacher) $query->where('j.id_guru', $teacher);
+        $rows = $query->get()->getResultArray();
+
+        $scheduleIds = array_values(array_unique(array_map(
+            static fn (array $row): int => (int) $row['id_jadwal'],
+            $rows
+        )));
+        $studentCountsByClass = [];
+        $attendanceBySchedule = [];
+
+        if ($rows !== []) {
+            $classIds = array_values(array_unique(array_map(
+                static fn (array $row): int => (int) $row['id_kelas'],
+                $rows
+            )));
+            $studentCountRows = $this->db->table('tb_siswa')
+                ->select('id_kelas')
+                ->selectCount('id_siswa', 'total_siswa')
+                ->whereIn('id_kelas', $classIds)
+                ->groupBy('id_kelas')
+                ->get()
+                ->getResultArray();
+            foreach ($studentCountRows as $studentCountRow) {
+                $studentCountsByClass[(int) $studentCountRow['id_kelas']] = (int) $studentCountRow['total_siswa'];
+            }
+
+            // Aggregate all attendance statuses per schedule in one query.
+            $attendanceRows = $this->db->table('tb_absensi_pelajaran')
+                ->select('id_jadwal')
+                ->selectCount('id_absensi', 'terisi')
+                ->select("SUM(CASE WHEN id_kehadiran = 1 THEN 1 ELSE 0 END) AS hadir", false)
+                ->select("SUM(CASE WHEN id_kehadiran = 2 THEN 1 ELSE 0 END) AS sakit", false)
+                ->select("SUM(CASE WHEN id_kehadiran = 3 THEN 1 ELSE 0 END) AS izin", false)
+                ->select("SUM(CASE WHEN id_kehadiran = 4 THEN 1 ELSE 0 END) AS alpa", false)
+                ->where('tanggal', $date)
+                ->whereIn('id_jadwal', $scheduleIds)
+                ->groupBy('id_jadwal')
+                ->get()
+                ->getResultArray();
+            foreach ($attendanceRows as $attendanceRow) {
+                $attendanceBySchedule[(int) $attendanceRow['id_jadwal']] = $attendanceRow;
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $row['kelas_label'] = trim(($row['tingkat'] ?? '') . ' ' . ($row['jurusan'] ?? '') . ' ' . ($row['index_kelas'] ?? ''));
+            $row['total_siswa'] = $studentCountsByClass[(int) $row['id_kelas']] ?? 0;
+            $stats = $attendanceBySchedule[(int) $row['id_jadwal']] ?? [];
+            $row['terisi'] = (int) ($stats['terisi'] ?? 0);
+            $row['hadir'] = (int) ($stats['hadir'] ?? 0);
+            $row['izin'] = (int) ($stats['izin'] ?? 0);
+            $row['sakit'] = (int) ($stats['sakit'] ?? 0);
+            $row['alpa'] = (int) ($stats['alpa'] ?? 0);
+            $row['persen'] = $row['total_siswa']
+                ? round(($row['terisi'] / $row['total_siswa']) * 100)
+                : 0;
+        }
+        unset($row);
+
+        return view('waka/monitoring', [
+            'title' => 'Monitoring Absensi',
+            'ctx' => 'waka-monitoring',
+            'date' => $date,
+            'class' => $class,
+            'teacher' => $teacher,
+            'classes' => $this->classes(),
+            'teachers' => $this->teachers(),
+            'rows' => $rows,
+        ]);
     }
 
     public function laporan()
