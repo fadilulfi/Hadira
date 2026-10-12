@@ -61,34 +61,20 @@
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mt-4">
-                                        <label for="role">Role</label>
-                                        <select class="custom-select <?php if (session('errors.role')): ?>is-invalid<?php endif ?>" id="role" name="role">
-                                            <option value="">--Pilih role--</option>
-                                            <?php foreach ($roles as $role): ?>
-                                                <option value="<?= $role->value ?>" <?= old('role') == (string) $role->value ? 'selected' : ''; ?>>
-                                                    <?= $role->label() ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <div class="invalid-feedback">
-                                            <?= session('errors.role') ?>
-                                        </div>
-                                    </div>
+                            <div class="form-group mt-4">
+                                <label for="role">Role</label>
+                                <select class="custom-select <?php if (session('errors.role')): ?>is-invalid<?php endif ?>" id="role" name="role" required>
+                                    <option value="">--Pilih role--</option>
+                                    <?php foreach ($roles as $role): ?>
+                                        <option value="<?= esc($role->value) ?>" <?= old('role') == (string) $role->value ? 'selected' : ''; ?>>
+                                            <?= esc($role->label()) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">
+                                    <?= session('errors.role') ?>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group mt-4">
-                                        <label for="id_guru">Hubungkan ke Guru (Opsional)</label>
-                                        <select class="custom-select" id="id_guru" name="id_guru">
-                                            <option value="">--Pilih Guru--</option>
-                                            <?php foreach ($guru as $g): ?>
-                                                <option value="<?= $g['id_guru']; ?>" <?= old('id_guru') == $g['id_guru'] ? 'selected' : ''; ?>><?= $g['nama_guru']; ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
+                                <small class="form-text text-muted">Akun Guru murni dibuat melalui menu Data Guru. Menu ini untuk akun operasional seperti Super Admin, Staf Petugas, Scanner, Kepala Sekolah, BK, dan Waka.</small>
                             </div>
 
                             <button type="submit" class="btn btn-info btn-block mt-4"><?= lang('Auth.register') ?></button>
