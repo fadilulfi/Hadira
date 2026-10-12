@@ -22,7 +22,7 @@
                            <div class="row">
                               <div class="col-md-4 col-lg-5">
                                  <h4 class="card-title"><b>Daftar Petugas</b></h4>
-                                 <p class="card-category">Petugas absensi</p>
+                                 <p class="card-category">Akun operasional non-guru dan akun dengan role tambahan</p>
                               </div>
                               <div class="ml-md-auto col-auto row">
                                  <div class="col-12 col-sm-auto nav nav-tabs">
