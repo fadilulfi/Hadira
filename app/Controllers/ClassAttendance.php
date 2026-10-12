@@ -57,7 +57,7 @@ class ClassAttendance extends BaseController
         return $this->db->table('tb_jadwal_pelajaran j')
             ->select(
                 'j.id_jadwal, j.id_guru, j.id_kelas, j.id_jam, '
-                . 'g.nama_guru, mp.nama_mapel, jp.nama_jam, jp.jam_mulai, jp.jam_selesai, '
+                . 'g.nama_guru, mp.nama_mapel, jp.nama_jam, jp.jam_mulai, jp.jam_selesai, jp.urutan, '
                 . 'k.tingkat, k.index_kelas, jr.jurusan, '
                 . 'CONCAT(k.tingkat, " ", jr.jurusan, " ", k.index_kelas) AS nama_kelas',
                 false
@@ -134,7 +134,7 @@ class ClassAttendance extends BaseController
             ->groupBy([
                 'j.id_jadwal', 'j.id_guru', 'j.id_kelas',
                 'g.nama_guru', 'mp.nama_mapel', 'jp.nama_jam',
-                'jp.jam_mulai', 'jp.jam_selesai',
+                'jp.jam_mulai', 'jp.jam_selesai', 'jp.urutan',
                 'k.tingkat', 'k.index_kelas', 'jr.jurusan',
             ])
             ->orderBy('jp.urutan');
