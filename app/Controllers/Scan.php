@@ -21,6 +21,7 @@ class Scan extends BaseController
 
    public function __construct()
    {
+      helper('user_helper');
       $this->WANotificationEnabled = getenv('WA_NOTIFICATION') === 'true' ? true : false;
 
       $this->siswaModel = new SiswaModel();
@@ -29,14 +30,26 @@ class Scan extends BaseController
       $this->presensiGuruModel = new PresensiGuruModel();
    }
 
+   private function ensureScannerAccess()
+   {
+      if (!can_use_attendance_scanner()) {
+         return $this->response->setStatusCode(403)->setBody('Hanya akun Petugas Scanner atau Super Admin yang dapat melakukan presensi melalui QR.');
+      }
+
+      return null;
+   }
+
    public function index($t = 'Masuk')
    {
+      if ($denied = $this->ensureScannerAccess()) return $denied;
       $data = ['waktu' => $t, 'title' => 'Absensi Siswa dan Guru Berbasis QR Code'];
       return view('scan/scan', $data);
    }
 
    public function cekKode()
    {
+      if ($denied = $this->ensureScannerAccess()) return $denied;
+
       // Cek apakah hari ini libur
       $holidayModel = new \App\Models\HariLiburModel();
       $today = date('Y-m-d');
@@ -95,6 +108,8 @@ class Scan extends BaseController
 
    public function absenMasuk($type, $result)
    {
+      if ($denied = $this->ensureScannerAccess()) return $denied;
+
       // data ditemukan
       $data['data'] = $result;
       $data['waktu'] = 'masuk';
@@ -174,6 +189,8 @@ class Scan extends BaseController
 
    public function absenPulang($type, $result)
    {
+      if ($denied = $this->ensureScannerAccess()) return $denied;
+
       // data ditemukan
       $data['data'] = $result;
       $data['waktu'] = 'pulang';
