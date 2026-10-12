@@ -43,23 +43,80 @@ class Dashboard extends BaseController
 
     public function index()
     {
-        if ($r=$this->guard()) return $r;
-        $today=(int)date('N'); $date=date('Y-m-d');
-        $scheduleCount=(int)$this->db->table('tb_jadwal_pelajaran')->where('aktif',1)->countAllResults();
-        $teacherCount=(int)$this->db->table('tb_guru')->countAllResults();
-        $classCount=(int)$this->db->table('tb_kelas')->countAllResults();
-        $todaySchedules=$this->db->table('tb_jadwal_pelajaran j')
+        if ($r = $this->guard()) return $r;
+
+        $today = (int) date('N');
+        $date = date('Y-m-d');
+
+        $scheduleCount = (int) $this->db->table('tb_jadwal_pelajaran')->where('aktif', 1)->countAllResults();
+        $teacherCount = (int) $this->db->table('tb_guru')->countAllResults();
+        $classCount = (int) $this->db->table('tb_kelas')->countAllResults();
+
+        $todaySchedules = $this->db->table('tb_jadwal_pelajaran j')
             ->select('j.*, g.nama_guru, mp.nama_mapel, jp.nama_jam, jp.jam_mulai, jp.jam_selesai, k.tingkat, k.index_kelas, jr.jurusan')
-            ->join('tb_guru g','g.id_guru=j.id_guru')->join('tb_mapel mp','mp.id_mapel=j.id_mapel')
-            ->join('tb_jam_pelajaran jp','jp.id_jam=j.id_jam')->join('tb_kelas k','k.id_kelas=j.id_kelas')
-            ->join('tb_jurusan jr','jr.id=k.id_jurusan','left')->where('j.hari',$today)->where('j.aktif',1)->orderBy('jp.urutan')->get()->getResultArray();
-        foreach($todaySchedules as &$row){
-            $row['kelas_label']=trim(($row['tingkat']??'').' '.($row['jurusan']??'').' '.($row['index_kelas']??''));
-            $row['absen_count']=(int)$this->db->table('tb_absensi_pelajaran')->where('id_jadwal',(int)$row['id_jadwal'])->where('tanggal',$date)->countAllResults();
-            $row['total_siswa']=(int)$this->db->table('tb_siswa')->where('id_kelas',(int)$row['id_kelas'])->countAllResults();
-        } unset($row);
-        $done=array_sum(array_map(fn($x)=>$x['absen_count']>0?1:0,$todaySchedules));
-        return view('waka/dashboard',[ 'title'=>'Dashboard Waka','ctx'=>'waka-dashboard','scheduleCount'=>$scheduleCount,'teacherCount'=>$teacherCount,'classCount'=>$classCount,'todaySchedules'=>$todaySchedules,'done'=>$done,'today'=>$today ]);
+            ->join('tb_guru g', 'g.id_guru = j.id_guru')
+            ->join('tb_mapel mp', 'mp.id_mapel = j.id_mapel')
+            ->join('tb_jam_pelajaran jp', 'jp.id_jam = j.id_jam')
+            ->join('tb_kelas k', 'k.id_kelas = j.id_kelas')
+            ->join('tb_jurusan jr', 'jr.id = k.id_jurusan', 'left')
+            ->where('j.hari', $today)
+            ->where('j.aktif', 1)
+            ->orderBy('jp.urutan')
+            ->get()
+            ->getResultArray();
+
+        // Batch schedule attendance counts instead of one query per schedule.
+        $scheduleIds = array_values(array_unique(array_map(
+            static fn (array $row): int => (int) $row['id_jadwal'],
+            $todaySchedules
+        )));
+        $attendanceCountBySchedule = [];
+        if ($scheduleIds !== []) {
+            $attendanceRows = $this->db->table('tb_absensi_pelajaran')
+                ->select('id_jadwal')
+                ->selectCount('id_absensi', 'absen_count')
+                ->where('tanggal', $date)
+                ->whereIn('id_jadwal', $scheduleIds)
+                ->groupBy('id_jadwal')
+                ->get()
+                ->getResultArray();
+
+            foreach ($attendanceRows as $attendanceRow) {
+                $attendanceCountBySchedule[(int) $attendanceRow['id_jadwal']] = (int) $attendanceRow['absen_count'];
+            }
+        }
+
+        // Batch student counts for all classes instead of querying per schedule.
+        $studentCountsByClass = [];
+        $studentCountRows = $this->db->table('tb_siswa')
+            ->select('id_kelas')
+            ->selectCount('id_siswa', 'total_siswa')
+            ->groupBy('id_kelas')
+            ->get()
+            ->getResultArray();
+        foreach ($studentCountRows as $studentCountRow) {
+            $studentCountsByClass[(int) $studentCountRow['id_kelas']] = (int) $studentCountRow['total_siswa'];
+        }
+
+        foreach ($todaySchedules as &$row) {
+            $row['kelas_label'] = trim(($row['tingkat'] ?? '') . ' ' . ($row['jurusan'] ?? '') . ' ' . ($row['index_kelas'] ?? ''));
+            $row['absen_count'] = $attendanceCountBySchedule[(int) $row['id_jadwal']] ?? 0;
+            $row['total_siswa'] = $studentCountsByClass[(int) $row['id_kelas']] ?? 0;
+        }
+        unset($row);
+
+        $done = array_sum(array_map(static fn (array $row): int => $row['absen_count'] > 0 ? 1 : 0, $todaySchedules));
+
+        return view('waka/dashboard', [
+            'title' => 'Dashboard Waka',
+            'ctx' => 'waka-dashboard',
+            'scheduleCount' => $scheduleCount,
+            'teacherCount' => $teacherCount,
+            'classCount' => $classCount,
+            'todaySchedules' => $todaySchedules,
+            'done' => $done,
+            'today' => $today,
+        ]);
     }
 
     public function mapel()
