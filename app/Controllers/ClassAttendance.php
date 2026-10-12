@@ -311,6 +311,7 @@ class ClassAttendance extends BaseController
                 $old ? ['id_kehadiran' => $oldStatus, 'keterangan' => $oldNote] : null,
                 [
                     'id_jadwal' => $idJadwal,
+                    'id_siswa' => $studentId,
                     'tanggal' => $date,
                     'id_kehadiran' => $newStatus,
                     'keterangan' => $newNote,
