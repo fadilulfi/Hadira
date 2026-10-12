@@ -66,15 +66,51 @@ class GuruDashboard extends BaseController
 
         $todayRows = $q->orderBy('jp.urutan', 'ASC')->get()->getResultArray();
 
+        // Batch student totals per class and filled attendance sessions per schedule.
+        $classIds = array_values(array_unique(array_map(
+            static fn (array $row): int => (int) $row['id_kelas'],
+            $todayRows
+        )));
+        $scheduleIds = array_values(array_unique(array_map(
+            static fn (array $row): int => (int) $row['id_jadwal'],
+            $todayRows
+        )));
+
+        $studentCountsByClass = [];
+        if ($classIds !== []) {
+            $studentCountRows = $this->db->table('tb_siswa')
+                ->select('id_kelas')
+                ->selectCount('id_siswa', 'total_siswa')
+                ->whereIn('id_kelas', $classIds)
+                ->groupBy('id_kelas')
+                ->get()
+                ->getResultArray();
+
+            foreach ($studentCountRows as $studentCountRow) {
+                $studentCountsByClass[(int) $studentCountRow['id_kelas']] = (int) $studentCountRow['total_siswa'];
+            }
+        }
+
+        $attendanceBySchedule = [];
+        if ($scheduleIds !== []) {
+            $attendanceRows = $this->db->table('tb_absensi_pelajaran')
+                ->select('id_jadwal')
+                ->selectCount('id_absensi', 'terisi')
+                ->where('tanggal', $date)
+                ->whereIn('id_jadwal', $scheduleIds)
+                ->groupBy('id_jadwal')
+                ->get()
+                ->getResultArray();
+
+            foreach ($attendanceRows as $attendanceRow) {
+                $attendanceBySchedule[(int) $attendanceRow['id_jadwal']] = (int) $attendanceRow['terisi'];
+            }
+        }
+
         foreach ($todayRows as &$row) {
             $row['kelas_label'] = trim(($row['tingkat'] ?? '') . ' ' . ($row['jurusan'] ?? '') . ' ' . ($row['index_kelas'] ?? ''));
-            $row['total_siswa'] = (int) $this->db->table('tb_siswa')
-                ->where('id_kelas', (int) $row['id_kelas'])
-                ->countAllResults();
-            $row['terisi'] = (int) $this->db->table('tb_absensi_pelajaran')
-                ->where('id_jadwal', (int) $row['id_jadwal'])
-                ->where('tanggal', $date)
-                ->countAllResults();
+            $row['total_siswa'] = $studentCountsByClass[(int) $row['id_kelas']] ?? 0;
+            $row['terisi'] = $attendanceBySchedule[(int) $row['id_jadwal']] ?? 0;
             $row['is_current'] = (($row['jam_mulai'] ?? '') <= $now && $now <= ($row['jam_selesai'] ?? ''));
         }
         unset($row);

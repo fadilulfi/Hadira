@@ -118,23 +118,88 @@ class PresensiGuruModel extends Model implements PresensiInterface
    }
 
    /**
-    * Get attendance trend for last N days
-    * @return array ['hadir' => [], 'sakit' => [], 'izin' => [], 'alfa' => [], 'belum_absen' => []]
+    * Return teacher attendance counts without loading matching rows into PHP.
+    */
+   public function getAttendanceSummaryForDate(string $tanggal): array
+   {
+      $row = $this->db->table('tb_presensi_guru ps')
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 1 THEN 1 ELSE 0 END) AS hadir", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 2 THEN 1 ELSE 0 END) AS sakit", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 3 THEN 1 ELSE 0 END) AS izin", false)
+         ->select("COUNT(DISTINCT CASE WHEN ps.id_kehadiran IN (1, 2, 3) THEN ps.id_guru END) AS tercatat", false)
+         ->where('ps.tanggal', $tanggal)
+         ->get()
+         ->getRowArray() ?? [];
+
+      $totalRow = $this->db->table('tb_guru')->selectCount('id_guru', 'total_guru')->get()->getRowArray() ?? [];
+      $totalGuru = (int) ($totalRow['total_guru'] ?? 0);
+      $tercatat = (int) ($row['tercatat'] ?? 0);
+
+      return [
+         'hadir' => (int) ($row['hadir'] ?? 0),
+         'sakit' => (int) ($row['sakit'] ?? 0),
+         'izin' => (int) ($row['izin'] ?? 0),
+         'alfa' => max(0, $totalGuru - $tercatat),
+         'total' => $totalGuru,
+      ];
+   }
+
+   /**
+    * Get attendance trend for the last N calendar days using grouped queries.
+    *
+    * @return array<string, list<int>>
     */
    public function getAttendanceTrend(int $days = 7): array
    {
-      $now = Time::now();
       $result = ['hadir' => [], 'sakit' => [], 'izin' => [], 'alfa' => [], 'belum_absen' => []];
+      $days = max(0, $days);
+      if ($days === 0) {
+         return $result;
+      }
 
+      $now = Time::now();
+      $dates = [];
+      for ($offset = $days - 1; $offset >= 0; $offset--) {
+         $dates[] = $now->subDays($offset)->toDateString();
+      }
+
+      $startDate = $dates[0];
+      $endDate = $dates[count($dates) - 1];
+      $today = $now->toDateString();
+      $nowTime = $now->toTimeString();
+
+      $holidayRows = $this->db->table('tb_hari_libur')
+         ->select('tanggal')
+         ->where('tanggal >=', $startDate)
+         ->where('tanggal <=', $endDate)
+         ->get()
+         ->getResultArray();
+      $holidayDates = array_fill_keys(array_column($holidayRows, 'tanggal'), true);
+
+      $attendanceRows = $this->db->table('tb_presensi_guru ps')
+         ->select('ps.tanggal')
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 1 THEN 1 ELSE 0 END) AS hadir", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 2 THEN 1 ELSE 0 END) AS sakit", false)
+         ->select("SUM(CASE WHEN ps.id_kehadiran = 3 THEN 1 ELSE 0 END) AS izin", false)
+         ->select("COUNT(DISTINCT CASE WHEN ps.id_kehadiran IN (1, 2, 3) THEN ps.id_guru END) AS tercatat", false)
+         ->where('ps.tanggal >=', $startDate)
+         ->where('ps.tanggal <=', $endDate)
+         ->groupBy('ps.tanggal')
+         ->get()
+         ->getResultArray();
+
+      $attendanceByDate = [];
+      foreach ($attendanceRows as $row) {
+         $attendanceByDate[$row['tanggal']] = $row;
+      }
+
+      $totalRow = $this->db->table('tb_guru')->selectCount('id_guru', 'total_guru')->get()->getRowArray() ?? [];
+      $totalGuru = (int) ($totalRow['total_guru'] ?? 0);
       $schoolConfigurations = new \Config\School();
-      $generalSettings = $schoolConfigurations::$generalSettings;
-      $jamPulangStandard = $generalSettings->jam_pulang_standard ?? '14:00:00';
-      $holidayModel = new \App\Models\HariLiburModel();
+      $jamPulangStandard = $schoolConfigurations::$generalSettings->jam_pulang_standard ?? '14:00:00';
 
-      for ($i = $days - 1; $i >= 0; $i--) {
-         $date = $now->subDays($i)->toDateString();
-
-         if ($holidayModel->isHoliday($date)) {
+      foreach ($dates as $date) {
+         if (isset($holidayDates[$date])) {
             $result['hadir'][] = 0;
             $result['sakit'][] = 0;
             $result['izin'][] = 0;
@@ -143,22 +208,19 @@ class PresensiGuruModel extends Model implements PresensiInterface
             continue;
          }
 
-         $isToday = ($date == $now->toDateString());
-         $isAfterSchool = (date('Y-m-d') > $date) || ($isToday && $now->toTimeString() > $jamPulangStandard);
+         $row = $attendanceByDate[$date] ?? [];
+         $hadir = (int) ($row['hadir'] ?? 0);
+         $sakit = (int) ($row['sakit'] ?? 0);
+         $izin = (int) ($row['izin'] ?? 0);
+         $tercatat = (int) ($row['tercatat'] ?? 0);
+         $notPresent = max(0, $totalGuru - $tercatat);
+         $isAfterSchool = ($date < $today) || ($date === $today && $nowTime > $jamPulangStandard);
 
-         $result['hadir'][] = count($this->getPresensiByKehadiran('1', $date));
-         $result['sakit'][] = count($this->getPresensiByKehadiran('2', $date));
-         $result['izin'][] = count($this->getPresensiByKehadiran('3', $date));
-         
-         $notPresentCount = count($this->getPresensiByKehadiran('4', $date));
-         
-         if ($isAfterSchool) {
-            $result['alfa'][] = $notPresentCount;
-            $result['belum_absen'][] = 0;
-         } else {
-            $result['alfa'][] = 0;
-            $result['belum_absen'][] = $notPresentCount;
-         }
+         $result['hadir'][] = $hadir;
+         $result['sakit'][] = $sakit;
+         $result['izin'][] = $izin;
+         $result['alfa'][] = $isAfterSchool ? $notPresent : 0;
+         $result['belum_absen'][] = $isAfterSchool ? 0 : $notPresent;
       }
 
       return $result;
