@@ -95,9 +95,11 @@ class Dashboard extends BaseController
       }
       unset($k);
 
-      $totalSiswa = $this->siswaModel->getSiswaCountByKelas();
-      $totalGuru = $this->guruModel->countAllResults();
-      $totalJurusan = count($this->jurusanModel->getDataJurusan());
+      $jumlahKehadiranSiswa = $this->presensiSiswaModel->getAttendanceSummaryForDate($today);
+      $jumlahKehadiranGuru = $this->presensiGuruModel->getAttendanceSummaryForDate($today);
+      $totalSiswa = $jumlahKehadiranSiswa['total'];
+      $totalGuru = $jumlahKehadiranGuru['total'];
+      $totalJurusan = (int) db_connect()->table('tb_jurusan')->countAllResults();
       $totalPetugas = $this->petugasModel->countAllResults();
 
       $data = [
@@ -119,8 +121,8 @@ class Dashboard extends BaseController
          'grafikKehadiranSiswa' => $grafikKehadiranSiswa,
          'grafikKehadiranGuru' => $grafikKehadiranGuru,
 
-         'jumlahKehadiranSiswa' => $this->presensiSiswaModel->getAttendanceSummaryForDate($today),
-         'jumlahKehadiranGuru' => $this->presensiGuruModel->getAttendanceSummaryForDate($today),
+         'jumlahKehadiranSiswa' => $jumlahKehadiranSiswa,
+         'jumlahKehadiranGuru' => $jumlahKehadiranGuru,
          
          'topLateStudents' => $this->siswaModel->select('tb_siswa.*, tb_kelas.tingkat, tb_kelas.index_kelas, tb_jurusan.jurusan')
             ->join('tb_kelas', 'tb_kelas.id_kelas = tb_siswa.id_kelas')
@@ -155,7 +157,7 @@ class Dashboard extends BaseController
 
       $jumlahKehadiranSiswa = $this->presensiSiswaModel->getAttendanceSummaryForDate($today, $idKelas);
 
-      $totalSiswa = $this->siswaModel->getSiswaCountByKelas($idKelas);
+      $totalSiswa = $jumlahKehadiranSiswa['total'];
       
       $jamPulangStandard = $this->generalSettings->jam_pulang_standard ?? '14:00:00';
       $isAfterSchool = $now->toTimeString() > $jamPulangStandard;
@@ -180,8 +182,8 @@ class Dashboard extends BaseController
       // Grafik Siswa (7 Hari) - using getAttendanceTrend
       $grafikKehadiranSiswa = $this->presensiSiswaModel->getAttendanceTrend(7, $idKelas ?: null);
 
-      // Jumlah siswa per kelas
-      $jumlahSiswa = $this->siswaModel->getSiswaCountByKelas($idKelas);
+      // Total siswa is already calculated together with today's attendance aggregate.
+      $jumlahSiswa = $jumlahKehadiranSiswa['total'];
 
       $data = [
          'hadir' => $jumlahKehadiranSiswa['hadir'],
