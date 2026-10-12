@@ -22,7 +22,7 @@
                             </a>
                         </div>
                         <p class="card-category">Jumlah siswa</p>
-                        <h3 class="card-title"><?= count($siswa); ?></h3>
+                        <h3 class="card-title"><?= $totalSiswa; ?></h3>
                     </div>
                     <div class="card-footer">
                         <div class="stats">
@@ -41,7 +41,7 @@
                             </a>
                         </div>
                         <p class="card-category">Jumlah guru</p>
-                        <h3 class="card-title"><?= count($guru); ?></h3>
+                        <h3 class="card-title"><?= $totalGuru; ?></h3>
                     </div>
                     <div class="card-footer">
                         <div class="stats">
@@ -60,7 +60,7 @@
                             </a>
                         </div>
                         <p class="card-category">Kelas / Jurusan</p>
-                        <h3 class="card-title text-nowrap"><?= count($kelas) . ' / ' . count($jurusan); ?></h3>
+                        <h3 class="card-title text-nowrap"><?= count($kelas) . ' / ' . $totalJurusan; ?></h3>
                     </div>
                     <div class="card-footer">
                         <div class="stats">
@@ -79,7 +79,7 @@
                             </a>
                         </div>
                         <p class="card-category">Jumlah petugas</p>
-                        <h3 class="card-title"><?= count($petugas); ?></h3>
+                        <h3 class="card-title"><?= $totalPetugas; ?></h3>
                     </div>
                     <div class="card-footer">
                         <div class="stats">
@@ -100,7 +100,7 @@
                                     <p class="card-category">Jumlah siswa</p>
                                     <h3 class="card-title text-nowrap">
                                         <i class="material-icons">person</i>
-                                        <?= count($siswa); ?>
+                                        <?= $totalSiswa; ?>
                                     </h3>
                                 </div>
                             </div>
@@ -123,7 +123,7 @@
                                     <p class="card-category">Jumlah guru</p>
                                     <h3 class="card-title text-nowrap">
                                         <i class="material-icons">person_4</i>
-                                        <?= count($guru); ?>
+                                        <?= $totalGuru; ?>
                                     </h3>
                                 </div>
                             </div>
@@ -145,7 +145,7 @@
                                 <div class="text-right">
                                     <p class="card-category">Kelas / Jurusan</p>
                                     <h3 class="card-title text-nowrap">
-                                        <?= count($kelas) . ' / ' . count($jurusan); ?>
+                                        <?= count($kelas) . ' / ' . $totalJurusan; ?>
                                     </h3>
                                 </div>
                             </div>
@@ -169,7 +169,7 @@
                                     <h3 class="card-title">
                                         <i class="material-icons">settings</i>
 
-                                        <?= count($petugas); ?>
+                                        <?= $totalPetugas; ?>
                                     </h3>
                                 </div>
                             </div>
@@ -205,7 +205,7 @@
                                     </div>
                                     <div>
                                         <select name="id_kelas" id="filterKelas" class="custom-select">
-                                            <option value="">-- Semua Kelas (<?= count($siswa) ?> siswa) --
+                                            <option value="">-- Semua Kelas (<?= $totalSiswa ?> siswa) --
                                             </option>
                                             <?php foreach ($kelas as $k): ?>
                                                 <option value="<?= $k['id_kelas'] ?>" data-kelas="<?= $k['kelas'] ?>">
