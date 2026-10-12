@@ -3,6 +3,7 @@ $user = auth()->user();
 $context = $ctx ?? 'dashboard';
 
 $isSuperAdmin = $user && $user->inGroup('superadmin');
+$isAdmin = $user && $user->inGroup('admin');
 $isGuru = $user && $user->inGroup('guru');
 $isBK   = $user && $user->inGroup('bk');
 $isWaka = $user && $user->inGroup('waka');
@@ -30,6 +31,7 @@ if ($isSuperAdmin) {
 if ($isSuperAdmin) $roleLabel = 'Super Administrator';
 elseif ($isBK) $roleLabel = 'Guru BK';
 elseif ($isWaka) $roleLabel = 'Waka Kurikulum';
+elseif ($isAdmin) $roleLabel = 'Admin Monitoring';
 elseif ($isGuru) $roleLabel = 'Guru';
 elseif ($isKepsek) $roleLabel = 'Kepala Sekolah';
 elseif ($isScanner) $roleLabel = 'Petugas Scanner';
@@ -80,9 +82,20 @@ $adminMenus = [
    ['title' => 'Backup & Restore',     'url' => 'admin/backup',              'icon' => 'backup',     'context' => 'backup',             'perm' => 'backup.manage'],
 ];
 
+$adminMonitoringMenus = [
+   ['title' => 'Dashboard',        'url' => 'admin/dashboard',   'icon' => 'dashboard', 'context' => 'admin-dashboard', 'perm' => 'dashboard.view-admin'],
+   ['title' => 'Absensi Siswa',    'url' => 'admin/absen-siswa', 'icon' => 'checklist', 'context' => 'absen-siswa',      'perm' => 'attendance.monitor'],
+   ['title' => 'Absensi Guru',     'url' => 'admin/absen-guru',  'icon' => 'checklist', 'context' => 'absen-guru',       'perm' => 'attendance.monitor'],
+   ['title' => 'Generate Laporan', 'url' => 'admin/laporan',     'icon' => 'print',     'context' => 'laporan',          'perm' => 'attendance.view'],
+];
+
 $adminItems = [];
+$adminSectionLabel = 'Administrasi';
 if ($isSuperAdmin) {
     foreach ($adminMenus as $m) if ($user->can($m['perm'])) $adminItems[] = $m;
+} elseif ($isAdmin || $isKepsek) {
+    $adminSectionLabel = 'Monitoring Absensi';
+    foreach ($adminMonitoringMenus as $m) if ($user->can($m['perm'])) $adminItems[] = $m;
 }
 
 if ($isSuperAdmin) {
@@ -91,12 +104,14 @@ if ($isSuperAdmin) {
         ['label' => 'Panel BK', 'items' => $bkMenu],
         ['label' => 'Panel Waka Kurikulum', 'items' => $wakaMenu],
     ];
-} elseif ($isGuru) {
-    $rolePanels = [['label' => 'Menu Guru', 'items' => $guruMenu]];
 } elseif ($isBK) {
     $rolePanels = [['label' => 'Menu BK', 'items' => $bkMenu]];
 } elseif ($isWaka) {
     $rolePanels = [['label' => 'Menu Waka Kurikulum', 'items' => $wakaMenu]];
+} elseif ($isAdmin || $isKepsek) {
+    $rolePanels = [];
+} elseif ($isGuru) {
+    $rolePanels = [['label' => 'Menu Guru', 'items' => $guruMenu]];
 } else {
     $rolePanels = [];
 }
@@ -127,7 +142,7 @@ if ($isSuperAdmin) {
          <?php endforeach; ?>
 <?php endforeach; ?>
 <?php if ($adminItems !== []): ?>
-         <li class="nav-item"><p class="nav-link py-1">Administrasi</p></li>
+         <li class="nav-item"><p class="nav-link py-1"><?= esc($adminSectionLabel); ?></p></li>
          <?php foreach ($adminItems as $item): ?>
          <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>">

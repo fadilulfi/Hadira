@@ -25,6 +25,7 @@ class DataAbsenSiswa extends BaseController
 
    public function __construct()
    {
+      helper('user_helper');
       $this->currentDate = Time::today()->toDateString();
 
       $this->siswaModel = new SiswaModel();
@@ -38,6 +39,9 @@ class DataAbsenSiswa extends BaseController
 
    public function index()
    {
+      if (!can_monitor_daily_attendance()) {
+         return $this->response->setStatusCode(403)->setBody('Akses monitoring absensi ditolak.');
+      }
       $kelas = $this->kelasModel->getDataKelas();
 
       $data = [
@@ -51,6 +55,9 @@ class DataAbsenSiswa extends BaseController
 
    public function ambilDataSiswa()
    {
+      if (!can_monitor_daily_attendance()) {
+         return $this->response->setStatusCode(403)->setBody('Akses monitoring absensi ditolak.');
+      }
       // ambil variabel POST
       $kelas = $this->request->getVar('kelas');
       $idKelas = $this->request->getVar('id_kelas');
@@ -72,6 +79,9 @@ class DataAbsenSiswa extends BaseController
 
    public function ambilKehadiran()
    {
+      if (!can_override_attendance()) {
+         return $this->response->setStatusCode(403)->setBody('Hanya Super Admin yang dapat membuka formulir koreksi absensi.');
+      }
       $idPresensi = $this->request->getVar('id_presensi');
       $idSiswa = $this->request->getVar('id_siswa');
 
@@ -86,6 +96,12 @@ class DataAbsenSiswa extends BaseController
 
    public function ubahKehadiran()
    {
+      if (!can_override_attendance()) {
+         return $this->response->setStatusCode(403)->setJSON([
+            'status' => false,
+            'message' => 'Hanya Super Admin yang dapat mengoreksi absensi.',
+         ]);
+      }
       // ambil variabel POST
       $idKehadiran = $this->request->getVar('id_kehadiran');
       $idSiswa = $this->request->getVar('id_siswa');

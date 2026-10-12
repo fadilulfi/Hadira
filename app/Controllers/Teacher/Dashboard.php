@@ -19,6 +19,7 @@ class Dashboard extends BaseController
 
     public function __construct()
     {
+        helper('user_helper');
         $this->kelasModel = new KelasModel();
         $this->siswaModel = new SiswaModel();
         $this->presensiSiswaModel = new PresensiSiswaModel();
@@ -125,11 +126,36 @@ class Dashboard extends BaseController
     }
 
     /**
+     * Return the current teacher's assigned homeroom only when the role is allowed
+     * to maintain attendance. Monitoring groups take precedence over a secondary Guru group.
+     */
+    private function getAuthorizedHomeroom()
+    {
+        $user = user();
+        if (!can_record_teacher_attendance() || !is_guru() || empty($user->id_guru)) {
+            return null;
+        }
+
+        return $this->kelasModel->getKelasByWali($user->id_guru) ?: null;
+    }
+
+    private function deniedAttendanceResponse()
+    {
+        return $this->response->setStatusCode(403)->setJSON([
+            'status' => false,
+            'message' => 'Akses absensi hanya tersedia untuk Guru/Wali Kelas yang berwenang.',
+        ]);
+    }
+
+    /**
      * Show attendance management page for the Wali Kelas.
      */
     public function attendance()
     {
         $user = user();
+        if (!$this->getAuthorizedHomeroom()) {
+            return redirect()->to(base_url('teacher/dashboard'))->with('error', 'Akun monitoring tidak dapat mengelola absensi harian.');
+        }
         if (!is_guru()) {
             return redirect()->to('teacher/dashboard')->with('error', 'Anda bukan Guru.');
         }
@@ -151,8 +177,16 @@ class Dashboard extends BaseController
 
     public function getAttendanceList()
     {
-        $idKelas = $this->request->getVar('id_kelas');
-        $namaKelas = $this->request->getVar('kelas'); // Just passed back to view
+        $kelasWali = $this->getAuthorizedHomeroom();
+        if (!$kelasWali) {
+            return $this->deniedAttendanceResponse();
+        }
+
+        $idKelas = (int) $this->request->getVar('id_kelas');
+        if ($idKelas !== (int) $kelasWali['id_kelas']) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => false, 'message' => 'Anda hanya dapat melihat absensi kelas wali Anda.']);
+        }
+        $namaKelas = $kelasWali['kelas'] ?? (string) $this->request->getVar('kelas');
         $tanggal = $this->request->getVar('tanggal');
 
         $result = $this->presensiSiswaModel->getPresensiByKelasTanggal($idKelas, $tanggal);
@@ -169,13 +203,23 @@ class Dashboard extends BaseController
 
     public function getEditModal()
     {
+        $kelasWali = $this->getAuthorizedHomeroom();
+        if (!$kelasWali) {
+            return $this->deniedAttendanceResponse();
+        }
+
         $idPresensi = $this->request->getVar('id_presensi');
         $idSiswa = $this->request->getVar('id_siswa');
+        $siswa = $this->siswaModel->getSiswaById($idSiswa);
+
+        if (!$siswa || (int) $siswa['id_kelas'] !== (int) $kelasWali['id_kelas']) {
+            return $this->response->setStatusCode(403)->setBody('Anda hanya dapat mengoreksi absensi siswa di kelas wali Anda.');
+        }
 
         $data = [
             'presensi' => $this->presensiSiswaModel->getPresensiById($idPresensi),
             'listKehadiran' => $this->kehadiranModel->getAllKehadiran(),
-            'data' => $this->siswaModel->getSiswaById($idSiswa)
+            'data' => $siswa
         ];
 
         return view('teacher/absen/modal_ubah_kehadiran', $data);
@@ -183,9 +227,23 @@ class Dashboard extends BaseController
 
     public function updateSingleAttendance()
     {
+        $kelasWali = $this->getAuthorizedHomeroom();
+        if (!$kelasWali) {
+            return $this->deniedAttendanceResponse();
+        }
+
+        $idSiswaRequest = (int) $this->request->getVar('id_siswa');
+        $idKelasRequest = (int) $this->request->getVar('id_kelas');
+        $siswa = $this->siswaModel->getSiswaById($idSiswaRequest);
+        if (!$siswa
+            || $idKelasRequest !== (int) $kelasWali['id_kelas']
+            || (int) $siswa['id_kelas'] !== (int) $kelasWali['id_kelas']) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => false, 'message' => 'Anda hanya dapat mengoreksi absensi siswa di kelas wali Anda.']);
+        }
+
         $idKehadiran = $this->request->getVar('id_kehadiran');
-        $idSiswa = $this->request->getVar('id_siswa');
-        $idKelas = $this->request->getVar('id_kelas');
+        $idSiswa = $idSiswaRequest;
+        $idKelas = $idKelasRequest;
         $tanggal = $this->request->getVar('tanggal');
         $jamMasuk = $this->request->getVar('jam_masuk');
         $jamKeluar = $this->request->getVar('jam_keluar');

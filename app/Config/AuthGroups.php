@@ -16,8 +16,8 @@ class AuthGroups extends ShieldAuthGroups
             'description' => 'Akses penuh ke seluruh fitur aplikasi.',
         ],
         'admin' => [
-            'title'       => 'Staf Petugas',
-            'description' => 'Mengelola absensi, generate QR, dan laporan.',
+            'title'       => 'Admin Monitoring',
+            'description' => 'Memantau absensi dan membaca laporan tanpa mengubah catatan kehadiran.',
         ],
         'kepsek' => [
             'title'       => 'Kepala Sekolah',
@@ -48,8 +48,12 @@ class AuthGroups extends ShieldAuthGroups
         'students.manage'            => 'Dapat mengelola data siswa',
         'teachers.manage'            => 'Dapat mengelola data guru',
         'classes.manage'             => 'Dapat mengelola data kelas dan jurusan',
-        'attendance.edit'            => 'Dapat mengubah data presensi',
+        'attendance.edit'            => 'Dapat mengubah data presensi pada fitur guru yang berwenang',
         'attendance.view'            => 'Dapat melihat laporan presensi',
+        'attendance.monitor'         => 'Dapat melihat detail absensi harian tanpa mengubahnya',
+        'attendance.override'        => 'Dapat mengoreksi catatan absensi melalui panel Super Admin',
+        'scan.access'                => 'Dapat mengakses pemindaian QR untuk presensi',
+        'class_attendance.record'    => 'Dapat mencatat absensi jam pelajaran sebagai guru yang berwenang',
         'qr.generate'                => 'Dapat generate QR Code',
         'petugas.manage'             => 'Dapat mengelola akun petugas',
         'settings.manage'            => 'Dapat mengelola pengaturan aplikasi',
@@ -72,23 +76,24 @@ class AuthGroups extends ShieldAuthGroups
         'superadmin' => [
             'dashboard.view-admin',
             'admin.*', 'students.*', 'teachers.*', 'classes.*',
-            'attendance.*', 'qr.*', 'petugas.*', 'settings.*', 'backup.*',
+            'attendance.*', 'qr.*', 'petugas.*', 'settings.*', 'backup.*', 'scan.*',
             'teacher.*', 'guru.*', 'bk.*', 'waka.*',
             'schedule.*', 'class_attendance.*', 'absence_monitoring.*', 'permission.*',
         ],
         'admin' => [
             'dashboard.view-admin', 'admin.access',
-            'attendance.edit', 'attendance.view', 'qr.generate',
+            'attendance.monitor', 'attendance.view',
         ],
         'kepsek' => [
-            'dashboard.view-admin', 'admin.access', 'attendance.view',
+            'dashboard.view-admin', 'admin.access', 'attendance.monitor', 'attendance.view',
         ],
         'scanner' => [
-            'admin.access', 'attendance.view',
+            'admin.access', 'attendance.view', 'scan.access',
         ],
         'guru' => [
             'guru.access', 'teacher.access', 'attendance.edit', 'attendance.view',
             'schedule.view', 'class_attendance.view', 'class_attendance.manage',
+            'class_attendance.record',
         ],
         'bk' => [
             'bk.access', 'schedule.view', 'class_attendance.view',

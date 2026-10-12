@@ -19,6 +19,7 @@ class DataAbsenGuru extends BaseController
 
    public function __construct()
    {
+      helper('user_helper');
       $this->guruModel = new GuruModel();
 
       $this->presensiGuru = new PresensiGuruModel();
@@ -28,6 +29,9 @@ class DataAbsenGuru extends BaseController
 
    public function index()
    {
+      if (!can_monitor_daily_attendance()) {
+         return $this->response->setStatusCode(403)->setBody('Akses monitoring absensi ditolak.');
+      }
       $data = [
          'title' => 'Data Absen Guru',
          'ctx' => 'absen-guru',
@@ -38,6 +42,9 @@ class DataAbsenGuru extends BaseController
 
    public function ambilDataGuru()
    {
+      if (!can_monitor_daily_attendance()) {
+         return $this->response->setStatusCode(403)->setBody('Akses monitoring absensi ditolak.');
+      }
       // ambil variabel POST
       $tanggal = $this->request->getVar('tanggal');
 
@@ -56,6 +63,9 @@ class DataAbsenGuru extends BaseController
 
    public function ambilKehadiran()
    {
+      if (!can_override_attendance()) {
+         return $this->response->setStatusCode(403)->setBody('Hanya Super Admin yang dapat membuka formulir koreksi absensi.');
+      }
       $idPresensi = $this->request->getVar('id_presensi');
       $idGuru = $this->request->getVar('id_guru');
 
@@ -70,6 +80,12 @@ class DataAbsenGuru extends BaseController
 
    public function ubahKehadiran()
    {
+      if (!can_override_attendance()) {
+         return $this->response->setStatusCode(403)->setJSON([
+            'status' => false,
+            'message' => 'Hanya Super Admin yang dapat mengoreksi absensi.',
+         ]);
+      }
       // ambil variabel POST
       $idKehadiran = $this->request->getVar('id_kehadiran');
       $idGuru = $this->request->getVar('id_guru');

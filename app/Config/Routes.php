@@ -32,8 +32,13 @@ $routes->get('/', function () {
       return redirect()->to(base_url('bk/dashboard'));
    }
 
-   if (is_guru()) {
-      return redirect()->to(base_url('teacher/dashboard'));
+   // Monitoring roles take precedence over a secondary Guru group.
+   if ($user && $user->inGroup('admin')) {
+      return redirect()->to(base_url('admin/dashboard'));
+   }
+
+   if ($user && $user->inGroup('kepsek')) {
+      return redirect()->to(base_url('admin/dashboard'));
    }
 
    $role = user_role();
@@ -41,11 +46,15 @@ $routes->get('/', function () {
       return redirect()->to(base_url('scan'));
    }
 
+   if (is_guru()) {
+      return redirect()->to(base_url('teacher/dashboard'));
+   }
+
    return redirect()->to(base_url('admin'));
 });
 
 // ── Scan (public after login) ──
-$routes->group('scan', function (RouteCollection $routes) {
+$routes->group('scan', ['filter' => 'permission:scan.access'], function (RouteCollection $routes) {
    $routes->get('', 'Scan::index');
    $routes->get('masuk', 'Scan::index/Masuk');
    $routes->get('pulang', 'Scan::index/Pulang');
@@ -78,7 +87,7 @@ $routes->group('admin', function (RouteCollection $routes) {
    $routes->post('dashboard/filter-data', 'Admin\Dashboard::filterData', ['filter' => 'permission:dashboard.view-admin']);
 
    // ── Perizinan ──
-   $routes->group('perizinan', ['namespace' => 'App\Controllers\Admin'], function ($routes) {
+   $routes->group('perizinan', ['namespace' => 'App\Controllers\Admin', 'filter' => 'permission:attendance.override'], function ($routes) {
       $routes->get('/', 'Perizinan::index');
       $routes->post('list', 'Perizinan::list');
       $routes->post('konfirmasi', 'Perizinan::konfirmasi');
@@ -86,7 +95,7 @@ $routes->group('admin', function (RouteCollection $routes) {
    });
 
    // ── Hari Libur ──
-   $routes->group('holiday', ['namespace' => 'App\Controllers\Admin'], function ($routes) {
+   $routes->group('holiday', ['namespace' => 'App\Controllers\Admin', 'filter' => 'permission:settings.manage'], function ($routes) {
       $routes->get('/', 'Holiday::index');
       $routes->get('generate-weekend', 'Holiday::generateWeekend');
       $routes->post('save', 'Holiday::save');
@@ -97,20 +106,20 @@ $routes->group('admin', function (RouteCollection $routes) {
    // ── Audit Log ──
    $routes->get('audit-log', 'Admin\Dashboard::auditLog');
 
-   // ── Absensi Siswa (attendance.edit) ──
-   $routes->group('absen-siswa', ['filter' => 'permission:attendance.edit'], function ($routes) {
-      $routes->get('/', 'Admin\DataAbsenSiswa::index');
-      $routes->post('/', 'Admin\DataAbsenSiswa::ambilDataSiswa');
-      $routes->post('kehadiran', 'Admin\DataAbsenSiswa::ambilKehadiran');
-      $routes->post('edit', 'Admin\DataAbsenSiswa::ubahKehadiran');
+   // ── Daily attendance monitoring is read-only; correction is Super Admin-only. ──
+   $routes->group('absen-siswa', ['filter' => 'permission:attendance.monitor'], function ($routes) {
+      $routes->get('/', 'Admin\\DataAbsenSiswa::index');
+      $routes->post('/', 'Admin\\DataAbsenSiswa::ambilDataSiswa');
+      $routes->post('kehadiran', 'Admin\\DataAbsenSiswa::ambilKehadiran', ['filter' => 'permission:attendance.override']);
+      $routes->post('edit', 'Admin\\DataAbsenSiswa::ubahKehadiran', ['filter' => 'permission:attendance.override']);
    });
 
-   // ── Absensi Guru (attendance.edit) ──
-   $routes->group('absen-guru', ['filter' => 'permission:attendance.edit'], function ($routes) {
-      $routes->get('/', 'Admin\DataAbsenGuru::index');
-      $routes->post('/', 'Admin\DataAbsenGuru::ambilDataGuru');
-      $routes->post('kehadiran', 'Admin\DataAbsenGuru::ambilKehadiran');
-      $routes->post('edit', 'Admin\DataAbsenGuru::ubahKehadiran');
+   // ── Teacher attendance monitoring follows the same read/edit separation. ──
+   $routes->group('absen-guru', ['filter' => 'permission:attendance.monitor'], function ($routes) {
+      $routes->get('/', 'Admin\\DataAbsenGuru::index');
+      $routes->post('/', 'Admin\\DataAbsenGuru::ambilDataGuru');
+      $routes->post('kehadiran', 'Admin\\DataAbsenGuru::ambilKehadiran', ['filter' => 'permission:attendance.override']);
+      $routes->post('edit', 'Admin\\DataAbsenGuru::ubahKehadiran', ['filter' => 'permission:attendance.override']);
    });
 
    // ── Data Siswa (students.manage) ──
@@ -257,7 +266,7 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
    $routes->get('jadwal', 'Teacher\Jadwal::index');
    $routes->get('absensi-kelas', 'Teacher\AbsensiKelas::index');
    $routes->get('absensi-kelas/(:any)', 'Teacher\AbsensiKelas::daftar/$1');
-   $routes->post('absensi-kelas/simpan', 'Teacher\AbsensiKelas::simpan');
+   $routes->post('absensi-kelas/simpan', 'Teacher\AbsensiKelas::simpan', ['filter' => 'permission:class_attendance.record']);
    $routes->get('absensi-kelas/current.json', 'Teacher\AbsensiKelas::currentJson');
 
    // Perizinan
