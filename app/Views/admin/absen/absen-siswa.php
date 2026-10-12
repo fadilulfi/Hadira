@@ -15,6 +15,14 @@
                      </div>
                   </div>
 
+                  <?php if (function_exists('can_correct_class_attendance') && can_correct_class_attendance()): ?>
+                     <div class="d-flex justify-content-end px-3">
+                        <a href="<?= base_url('class-attendance'); ?>" class="btn btn-outline-primary">
+                           <i class="material-icons">fact_check</i> Absensi Jam Pelajaran
+                        </a>
+                     </div>
+                  <?php endif; ?>
+
                   <div class="card-body pt-1 px-3">
                      <div class="row">
                         <?php foreach ($kelas as $value): ?>
