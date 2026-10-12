@@ -16,6 +16,7 @@ class DataPetugas extends BaseController
     * Akun Guru dibuat dari menu Data Guru dan otomatis mendapat group guru.
     */
    protected const NON_GURU_ROLES = [
+      UserRole::SuperAdmin,
       UserRole::Kepsek,
       UserRole::StafPetugas,
       UserRole::Scanner,
