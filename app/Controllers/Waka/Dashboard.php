@@ -46,7 +46,7 @@ class Dashboard extends BaseController
             ->getResultArray();
 
         return array_values(array_filter($rows, static function (array $jam): bool {
-            return preg_match('/^\s*\d+\s*[-–]\s*\d+\s*$/u', (string) $jam['nama_jam']) !== 1;
+            return preg_match('/\d+\s*[-–]\s*\d+/u', (string) $jam['nama_jam']) !== 1;
         }));
     }
     protected function dayName(int $day): string
@@ -218,7 +218,7 @@ class Dashboard extends BaseController
         $editStartId = (int) ($editRow['id_jam'] ?? 0);
         $editDuration = 1;
 
-        if ($editRow && preg_match('/^\s*(\d+)\s*[-–]\s*(\d+)\s*$/u', (string) $editRow['nama_jam'], $matches)) {
+        if ($editRow && preg_match('/(\d+)\s*[-–]\s*(\d+)/u', (string) $editRow['nama_jam'], $matches)) {
             $startOrder = (int) $matches[1];
             $endOrder = (int) $matches[2];
             $editDuration = max(1, min(3, $endOrder - $startOrder + 1));
