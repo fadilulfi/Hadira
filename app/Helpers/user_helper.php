@@ -107,6 +107,88 @@ function can_edit_attendance(): bool
     return $user !== null && $user->can('attendance.edit');
 }
 
+/**
+ * Daily attendance monitoring is read-only for Admin, Principal, and Super Admin.
+ */
+function can_monitor_daily_attendance(): bool
+{
+    $user = user();
+
+    return $user !== null
+        && $user->can('attendance.monitor')
+        && (
+            $user->inGroup('superadmin')
+            || $user->inGroup('admin')
+            || $user->inGroup('kepsek')
+        );
+}
+
+/**
+ * Only Super Admin may correct attendance through the legacy administrative pages.
+ */
+function can_override_attendance(): bool
+{
+    $user = user();
+
+    return $user !== null
+        && $user->inGroup('superadmin')
+        && $user->can('attendance.override');
+}
+
+/**
+ * Monitoring-role membership takes precedence over a secondary Guru group.
+ */
+function can_record_teacher_attendance(): bool
+{
+    $user = user();
+    if ($user === null) {
+        return false;
+    }
+
+    if ($user->inGroup('superadmin')) {
+        return true;
+    }
+
+    if (!$user->inGroup('guru') || !$user->can('class_attendance.record')) {
+        return false;
+    }
+
+    foreach (['admin', 'bk', 'waka', 'kepsek', 'scanner'] as $monitoringRole) {
+        if ($user->inGroup($monitoringRole)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Only a dedicated Scanner account or Super Admin may access QR attendance.
+ */
+function can_use_attendance_scanner(): bool
+{
+    $user = user();
+    if ($user === null || !$user->can('scan.access')) {
+        return false;
+    }
+
+    if ($user->inGroup('superadmin')) {
+        return true;
+    }
+
+    if (!$user->inGroup('scanner')) {
+        return false;
+    }
+
+    foreach (['admin', 'bk', 'waka', 'kepsek', 'guru'] as $monitoringRole) {
+        if ($user->inGroup($monitoringRole)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function can_generate_qr(): bool
 {
     $user = user();
