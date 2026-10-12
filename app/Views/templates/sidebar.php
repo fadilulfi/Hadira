@@ -131,8 +131,7 @@ if ($isSuperAdmin) {
          <?php
             // Keep the parent menu active while viewing a specific class-attendance schedule.
             $isActive = $context === $item['context']
-                || ($item['context'] === 'teacher-absensi-kelas' && $context === 'teacher-absensi-kelas-form')
-                || (!$isSuperAdmin && $isWaka && $item['context'] === 'waka-monitoring' && $context === 'class-attendance');
+                || ($item['context'] === 'teacher-absensi-kelas' && $context === 'teacher-absensi-kelas-form');
          ?>
          <li class="nav-item <?= $isActive ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>" <?= $isActive ? 'aria-current="page"' : ''; ?>>
@@ -145,7 +144,7 @@ if ($isSuperAdmin) {
 <?php if ($adminItems !== []): ?>
          <li class="nav-item"><p class="nav-link py-1"><?= esc($adminSectionLabel); ?></p></li>
          <?php foreach ($adminItems as $item): ?>
-         <li class="nav-item <?= ($context === $item['context'] || (!$isSuperAdmin && $isAdmin && $context === 'class-attendance' && $item['context'] === 'absen-siswa')) ? 'active' : ''; ?>">
+         <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>">
                <i class="material-icons"><?= $item['icon']; ?></i>
                <p><?= esc($item['title']); ?></p>
