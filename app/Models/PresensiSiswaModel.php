@@ -167,6 +167,7 @@ class PresensiSiswaModel extends Model implements PresensiInterface
          'sakit' => (int) ($row['sakit'] ?? 0),
          'izin' => (int) ($row['izin'] ?? 0),
          'alfa' => max(0, $totalSiswa - $tercatat),
+         'total' => $totalSiswa,
       ];
    }
 
