@@ -61,8 +61,9 @@ class AbsensiPelajaranModel extends Model
             ])->first();
 
             if ($existing) {
+                // Keep the original attendance time when a saved status is edited.
+                // The updated_at column records when the correction was made.
                 $this->update($existing['id_absensi'], [
-                    'waktu_absen' => $row['waktu_absen'],
                     'id_kehadiran' => $row['id_kehadiran'],
                     'keterangan' => $row['keterangan'],
                     'updated_at' => $row['updated_at'],
