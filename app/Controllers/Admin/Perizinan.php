@@ -16,6 +16,7 @@ class Perizinan extends BaseController
 
     public function __construct()
     {
+        helper('user_helper');
         $this->perizinanModel = new PerizinanModel();
         $this->presensiSiswaModel = new PresensiSiswaModel();
         $this->siswaModel = new SiswaModel();
@@ -24,6 +25,9 @@ class Perizinan extends BaseController
 
     public function index()
     {
+        if (!can_override_attendance()) {
+            return $this->response->setStatusCode(403)->setBody('Akses perizinan administratif hanya untuk Super Admin.');
+        }
         $data = [
             'title' => 'Data Perizinan Siswa',
             'perizinan' => $this->perizinanModel->getPerizinanWithSiswa(),
@@ -34,6 +38,9 @@ class Perizinan extends BaseController
 
     public function konfirmasi()
     {
+        if (!can_override_attendance()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+        }
         $id_perizinan = request()->getPost('id_perizinan');
         $status = request()->getPost('status');
         $id_petugas = user_id();
@@ -45,6 +52,9 @@ class Perizinan extends BaseController
 
     public function delete($id)
     {
+        if (!can_override_attendance()) {
+            return $this->response->setStatusCode(403)->setBody('Akses ditolak.');
+        }
         $perizinan = $this->perizinanModel->find($id);
         if ($perizinan && $perizinan['bukti']) {
             @unlink(FCPATH . 'uploads/perizinan/' . $perizinan['bukti']);
