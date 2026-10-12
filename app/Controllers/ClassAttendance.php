@@ -34,6 +34,32 @@ class ClassAttendance extends BaseController
         return null;
     }
 
+    /**
+     * Keep users in the monitoring area they entered from after viewing/correcting a session.
+     */
+    private function sourceContext(?string $source = null): string
+    {
+        $source = strtolower(trim((string) $source));
+        if (in_array($source, ['admin', 'bk', 'waka'], true)) {
+            return $source;
+        }
+
+        $role = user_role();
+        return in_array($role, ['admin', 'bk', 'waka'], true) ? $role : 'admin';
+    }
+
+    private function sourceListingUrl(string $source, string $date): string
+    {
+        $path = match ($source) {
+            'bk' => 'class-attendance?source=bk',
+            'waka' => 'waka/monitoring',
+            default => 'class-attendance?source=admin',
+        };
+        $separator = str_contains($path, '?') ? '&' : '?';
+
+        return base_url($path . $separator . 'tanggal=' . rawurlencode($date));
+    }
+
     private function safeDate(?string $value): ?string
     {
         $value = trim((string) $value);
@@ -100,6 +126,7 @@ class ClassAttendance extends BaseController
         }
 
         $today = Time::now()->toDateString();
+        $source = $this->sourceContext($this->request->getGet('source'));
         $requestedDate = (string) ($this->request->getGet('tanggal') ?: $today);
         $date = $this->safeDate($requestedDate);
 
@@ -178,16 +205,17 @@ class ClassAttendance extends BaseController
         }
         unset($row);
 
-        $pageTitle = match (user_role()) {
+        $pageTitle = match ($source) {
             'bk' => 'Monitoring Kehadiran',
             'waka' => 'Monitoring Absensi',
-            'admin', 'superadmin' => 'Absensi Jam Pelajaran',
+            'admin' => 'Absensi Jam Pelajaran',
             default => 'Koreksi Absensi Jam Pelajaran',
         };
 
         return view('class_attendance/index', [
             'title' => $pageTitle,
             'ctx' => 'class-attendance',
+            'source' => $source,
             'date' => $date,
             'classId' => $classId,
             'teacherId' => $teacherId,
@@ -204,25 +232,27 @@ class ClassAttendance extends BaseController
         }
 
         $today = Time::now()->toDateString();
+        $source = $this->sourceContext($this->request->getGet('source'));
         $date = $this->safeDate((string) ($this->request->getGet('tanggal') ?: $today));
         if ($date === null) {
-            return redirect()->to(base_url('class-attendance'))->with('error', 'Tanggal koreksi tidak valid.');
+            return redirect()->to($this->sourceListingUrl($source, $today))->with('error', 'Tanggal koreksi tidak valid.');
         }
 
         $schedule = $this->schedule((int) $idJadwal);
         if (!$schedule) {
-            return redirect()->to(base_url('class-attendance'))->with('error', 'Jadwal pelajaran tidak ditemukan.');
+            return redirect()->to($this->sourceListingUrl($source, $date))->with('error', 'Jadwal pelajaran tidak ditemukan.');
         }
 
         $attendanceMap = $this->absensiModel->getMapForSession((int) $idJadwal, $date);
         if ($attendanceMap === []) {
-            return redirect()->to(base_url('class-attendance?tanggal=' . rawurlencode($date)))
+            return redirect()->to($this->sourceListingUrl($source, $date))
                 ->with('error', 'Belum ada daftar hadir tersimpan untuk sesi dan tanggal tersebut.');
         }
 
         return view('class_attendance/edit', [
             'title' => 'Koreksi Daftar Hadir',
             'ctx' => 'class-attendance',
+            'source' => $source,
             'date' => $date,
             'schedule' => $schedule,
             'students' => $this->siswaModel->getSiswaByKelas((int) $schedule['id_kelas']),
@@ -237,6 +267,7 @@ class ClassAttendance extends BaseController
             return $denied;
         }
 
+        $source = $this->sourceContext($this->request->getPost('source'));
         $idJadwal = (int) $this->request->getPost('id_jadwal');
         $date = $this->safeDate((string) $this->request->getPost('tanggal'));
         if (!$idJadwal || $date === null) {
@@ -245,7 +276,7 @@ class ClassAttendance extends BaseController
 
         $schedule = $this->schedule($idJadwal);
         if (!$schedule) {
-            return redirect()->to(base_url('class-attendance'))->with('error', 'Jadwal pelajaran tidak ditemukan.');
+            return redirect()->to($this->sourceListingUrl($source, $date ?: Time::now()->toDateString()))->with('error', 'Jadwal pelajaran tidak ditemukan.');
         }
 
         $existingMap = $this->absensiModel->getMapForSession($idJadwal, $date);
@@ -326,7 +357,7 @@ class ClassAttendance extends BaseController
             );
         }
 
-        return redirect()->to(base_url('class-attendance/edit/' . $idJadwal . '?tanggal=' . rawurlencode($date)))
+        return redirect()->to(base_url('class-attendance/edit/' . $idJadwal . '?tanggal=' . rawurlencode($date) . '&source=' . rawurlencode($source)))
             ->with('success', 'Koreksi daftar hadir berhasil disimpan.');
     }
 }
