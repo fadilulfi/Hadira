@@ -27,6 +27,10 @@ class AbsensiKelas extends BaseController
 
     private function ensureTeacher()
     {
+        if (!can_record_teacher_attendance()) {
+            return redirect()->to(base_url('/'))->with('error', 'Akun monitoring tidak dapat mengisi atau mengubah absensi kelas.');
+        }
+
         if (!is_guru()) {
             return redirect()->to(base_url('admin'))->with('error', 'Anda bukan Guru.');
         }
