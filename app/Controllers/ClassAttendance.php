@@ -214,7 +214,11 @@ class ClassAttendance extends BaseController
 
         return view('class_attendance/index', [
             'title' => $pageTitle,
-            'ctx' => 'class-attendance',
+            'ctx' => match ($source) {
+                'admin' => 'absen-siswa',
+                'waka' => 'waka-monitoring',
+                default => 'class-attendance',
+            },
             'source' => $source,
             'date' => $date,
             'classId' => $classId,
@@ -251,7 +255,11 @@ class ClassAttendance extends BaseController
 
         return view('class_attendance/edit', [
             'title' => 'Koreksi Daftar Hadir',
-            'ctx' => 'class-attendance',
+            'ctx' => match ($source) {
+                'admin' => 'absen-siswa',
+                'waka' => 'waka-monitoring',
+                default => 'class-attendance',
+            },
             'source' => $source,
             'date' => $date,
             'schedule' => $schedule,
