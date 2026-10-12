@@ -140,6 +140,7 @@ class PresensiGuruModel extends Model implements PresensiInterface
          'sakit' => (int) ($row['sakit'] ?? 0),
          'izin' => (int) ($row['izin'] ?? 0),
          'alfa' => max(0, $totalGuru - $tercatat),
+         'total' => $totalGuru,
       ];
    }
 
