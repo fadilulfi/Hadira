@@ -178,8 +178,15 @@ class ClassAttendance extends BaseController
         }
         unset($row);
 
+        $pageTitle = match (user_role()) {
+            'bk' => 'Monitoring Kehadiran',
+            'waka' => 'Monitoring Absensi',
+            'admin', 'superadmin' => 'Absensi Jam Pelajaran',
+            default => 'Koreksi Absensi Jam Pelajaran',
+        };
+
         return view('class_attendance/index', [
-            'title' => 'Koreksi Absensi Jam Pelajaran',
+            'title' => $pageTitle,
             'ctx' => 'class-attendance',
             'date' => $date,
             'classId' => $classId,
