@@ -44,17 +44,28 @@ class Dashboard extends BaseController
       $dateRange = [];
       $chartLabelColors = [];
       $holidayModel = new \App\Models\HariLiburModel();
+      $dateObjects = [];
       for ($i = 6; $i >= 0; $i--) {
-         $date = $now->subDays($i)->toDateString();
-         $isHoliday = $holidayModel->isHoliday($date);
-         if ($i == 0) {
-            $formattedDate = "Hari ini";
-         } else {
-            $t = $now->subDays($i);
-            $formattedDate = "{$t->getDay()} " . substr($t->toFormattedDateString(), 0, 3);
-         }
-         array_push($dateRange, $formattedDate);
-         array_push($chartLabelColors, $isHoliday ? '#f44336' : '#333');
+         $dateObjects[] = $now->subDays($i);
+      }
+
+      $dateStrings = array_map(
+         static fn ($dateTime) => $dateTime->toDateString(),
+         $dateObjects
+      );
+      $holidayRows = $holidayModel->where('tanggal >=', $dateStrings[0])
+         ->where('tanggal <=', $dateStrings[count($dateStrings) - 1])
+         ->findAll();
+      $holidayDates = array_fill_keys(array_column($holidayRows, 'tanggal'), true);
+
+      foreach ($dateObjects as $index => $dateTime) {
+         $date = $dateStrings[$index];
+         $formattedDate = $index === count($dateObjects) - 1
+            ? "Hari ini"
+            : "{$dateTime->getDay()} " . substr($dateTime->toFormattedDateString(), 0, 3);
+
+         $dateRange[] = $formattedDate;
+         $chartLabelColors[] = isset($holidayDates[$date]) ? '#f44336' : '#333';
       }
 
       $today = $now->toDateString();
@@ -66,21 +77,40 @@ class Dashboard extends BaseController
       $grafikKehadiranSiswa = $this->presensiSiswaModel->getAttendanceTrend();
       $grafikKehadiranGuru = $this->presensiGuruModel->getAttendanceTrend();
 
-      // Prepare kelas data with student count
+      // Fetch student counts grouped by class once instead of querying once per class.
+      $studentCountRows = db_connect()->table('tb_siswa')
+         ->select('id_kelas')
+         ->selectCount('id_siswa', 'jumlah_siswa')
+         ->groupBy('id_kelas')
+         ->get()
+         ->getResultArray();
+      $studentCountsByClass = [];
+      foreach ($studentCountRows as $studentCountRow) {
+         $studentCountsByClass[(int) $studentCountRow['id_kelas']] = (int) $studentCountRow['jumlah_siswa'];
+      }
+
       $kelasData = $this->kelasModel->getDataKelas();
       foreach ($kelasData as &$k) {
-         $k['jumlah_siswa'] = $this->siswaModel->getSiswaCountByKelas($k['id_kelas']);
+         $k['jumlah_siswa'] = $studentCountsByClass[(int) $k['id_kelas']] ?? 0;
       }
+      unset($k);
+
+      $totalSiswa = $this->siswaModel->getSiswaCountByKelas();
+      $totalGuru = $this->guruModel->countAllResults();
+      $totalJurusan = count($this->jurusanModel->getDataJurusan());
+      $totalPetugas = $this->petugasModel->countAllResults();
 
       $data = [
          'title' => 'Dashboard',
          'ctx' => 'admin-dashboard',
 
-         'siswa' => $this->siswaModel->getAllSiswaWithKelas(),
-         'guru' => $this->guruModel->getAllGuru(),
+         // The dashboard only needs totals, not fully hydrated student/user rows.
+         'totalSiswa' => $totalSiswa,
+         'totalGuru' => $totalGuru,
+         'totalJurusan' => $totalJurusan,
+         'totalPetugas' => $totalPetugas,
 
          'kelas' => $kelasData,
-         'jurusan' => $this->jurusanModel->getDataJurusan(),
 
          'dateRange' => $dateRange,
          'chartLabelColors' => $chartLabelColors,
@@ -89,24 +119,8 @@ class Dashboard extends BaseController
          'grafikKehadiranSiswa' => $grafikKehadiranSiswa,
          'grafikKehadiranGuru' => $grafikKehadiranGuru,
 
-         'jumlahKehadiranSiswa' => [
-            'hadir' => count($this->presensiSiswaModel->getPresensiByKehadiran('1', $today)),
-            'sakit' => count($this->presensiSiswaModel->getPresensiByKehadiran('2', $today)),
-            'izin' => count($this->presensiSiswaModel->getPresensiByKehadiran('3', $today)),
-            'alfa' => count($this->presensiSiswaModel->getPresensiByKehadiran('4', $today))
-         ],
-
-         'jumlahKehadiranGuru' => [
-            'hadir' => count($this->presensiGuruModel->getPresensiByKehadiran('1', $today)),
-            'sakit' => count($this->presensiGuruModel->getPresensiByKehadiran('2', $today)),
-            'izin' => count($this->presensiGuruModel->getPresensiByKehadiran('3', $today)),
-            'alfa' => count($this->presensiGuruModel->getPresensiByKehadiran('4', $today))
-         ],
-
-         'totalSiswa' => $this->siswaModel->getSiswaCountByKelas(),
-         'totalGuru' => $this->guruModel->countAllResults(),
-
-         'petugas' => $this->petugasModel->getAllPetugas(),
+         'jumlahKehadiranSiswa' => $this->presensiSiswaModel->getAttendanceSummaryForDate($today),
+         'jumlahKehadiranGuru' => $this->presensiGuruModel->getAttendanceSummaryForDate($today),
          
          'topLateStudents' => $this->siswaModel->select('tb_siswa.*, tb_kelas.tingkat, tb_kelas.index_kelas, tb_jurusan.jurusan')
             ->join('tb_kelas', 'tb_kelas.id_kelas = tb_siswa.id_kelas')
@@ -139,12 +153,7 @@ class Dashboard extends BaseController
       $today = $now->toDateString();
       $idKelas = $this->request->getGet('id_kelas');
 
-      $jumlahKehadiranSiswa = [
-         'hadir' => count($this->presensiSiswaModel->getPresensiByKehadiran('1', $today, $idKelas)),
-         'sakit' => count($this->presensiSiswaModel->getPresensiByKehadiran('2', $today, $idKelas)),
-         'izin' => count($this->presensiSiswaModel->getPresensiByKehadiran('3', $today, $idKelas)),
-         'alfa' => count($this->presensiSiswaModel->getPresensiByKehadiran('4', $today, $idKelas))
-      ];
+      $jumlahKehadiranSiswa = $this->presensiSiswaModel->getAttendanceSummaryForDate($today, $idKelas);
 
       $totalSiswa = $this->siswaModel->getSiswaCountByKelas($idKelas);
       
@@ -166,12 +175,7 @@ class Dashboard extends BaseController
       $today = $now->toDateString();
 
       // Statistik Siswa
-      $jumlahKehadiranSiswa = [
-         'hadir' => count($this->presensiSiswaModel->getPresensiByKehadiran('1', $today, $idKelas)),
-         'sakit' => count($this->presensiSiswaModel->getPresensiByKehadiran('2', $today, $idKelas)),
-         'izin' => count($this->presensiSiswaModel->getPresensiByKehadiran('3', $today, $idKelas)),
-         'alfa' => count($this->presensiSiswaModel->getPresensiByKehadiran('4', $today, $idKelas))
-      ];
+      $jumlahKehadiranSiswa = $this->presensiSiswaModel->getAttendanceSummaryForDate($today, $idKelas);
 
       // Grafik Siswa (7 Hari) - using getAttendanceTrend
       $grafikKehadiranSiswa = $this->presensiSiswaModel->getAttendanceTrend(7, $idKelas ?: null);
