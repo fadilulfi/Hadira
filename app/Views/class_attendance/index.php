@@ -5,7 +5,7 @@
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                <h3 class="mb-1">Koreksi Absensi Jam Pelajaran</h3>
+                <h3 class="mb-1"><?= esc($title ?? 'Monitoring Absensi Jam Pelajaran') ?></h3>
                 <p class="text-muted mb-0">Pilih daftar hadir yang sudah dibuat guru. Perubahan tersimpan langsung ke database dan tercatat di Audit Log.</p>
             </div>
         </div>
@@ -84,7 +84,7 @@
                                     <td><?= (int) $row['terisi'] ?> / <?= (int) $row['total_siswa'] ?> siswa</td>
                                     <td>
                                         <a class="btn btn-sm btn-outline-primary" href="<?= base_url('class-attendance/edit/' . (int) $row['id_jadwal'] . '?tanggal=' . rawurlencode($date)) ?>">
-                                            <i class="material-icons">edit</i> Koreksi
+                                            <i class="material-icons">fact_check</i> Lihat / Koreksi
                                         </a>
                                     </td>
                                 </tr>
