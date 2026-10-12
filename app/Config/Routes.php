@@ -74,6 +74,14 @@ $routes->group('cek-kehadiran', function (RouteCollection $routes) {
    $routes->post('view', 'CekKehadiran::view');
 });
 
+// Shared correction page for saved per-lesson attendance.
+// Permission is granted only to Super Admin, Admin, Waka and BK.
+$routes->group('class-attendance', ['filter' => 'permission:class_attendance.correct'], function (RouteCollection $routes) {
+   $routes->get('/', 'ClassAttendance::index');
+   $routes->get('edit/(:num)', 'ClassAttendance::edit/$1');
+   $routes->post('save', 'ClassAttendance::save');
+});
+
 // ═══════════════════════════════════════════
 // ADMIN AREA — each resource has its own
 // permission filter via Shield PermissionFilter.
