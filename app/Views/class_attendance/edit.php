@@ -9,7 +9,14 @@
                 <p class="text-muted mb-0"><?= esc($schedule['nama_mapel']) ?> · <?= esc($schedule['nama_kelas']) ?> · <?= esc($date) ?></p>
                 <small class="text-muted">Guru pengisi: <?= esc($schedule['nama_guru']) ?> · <?= esc($schedule['nama_jam']) ?> (<?= esc(substr($schedule['jam_mulai'], 0, 5)) ?>–<?= esc(substr($schedule['jam_selesai'], 0, 5)) ?>)</small>
             </div>
-            <a href="<?= base_url('class-attendance?tanggal=' . rawurlencode($date)) ?>" class="btn btn-outline-secondary mt-2">Kembali ke daftar</a>
+            <?php
+                $backUrl = match ($source ?? 'admin') {
+                    'bk' => base_url('class-attendance?source=bk&tanggal=' . rawurlencode($date)),
+                    'waka' => base_url('waka/monitoring?tanggal=' . rawurlencode($date)),
+                    default => base_url('class-attendance?source=admin&tanggal=' . rawurlencode($date)),
+                };
+            ?>
+            <a href="<?= esc($backUrl) ?>" class="btn btn-outline-secondary mt-2">Kembali ke monitoring</a>
         </div>
 
         <?php if (session()->getFlashdata('success')): ?>
@@ -33,6 +40,7 @@
                     <?= csrf_field() ?>
                     <input type="hidden" name="id_jadwal" value="<?= (int) $schedule['id_jadwal'] ?>">
                     <input type="hidden" name="tanggal" value="<?= esc($date) ?>">
+                    <input type="hidden" name="source" value="<?= esc($source ?? 'admin') ?>">
 
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
