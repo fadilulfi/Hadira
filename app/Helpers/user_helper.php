@@ -108,6 +108,29 @@ function can_edit_attendance(): bool
 }
 
 /**
+ * Correct saved lesson-attendance records for the roles explicitly permitted.
+ * Teachers use the separate same-day, own-schedule workflow.
+ */
+function can_correct_class_attendance(): bool
+{
+    $user = user();
+    if ($user === null) {
+        return false;
+    }
+
+    if ($user->inGroup('superadmin')) {
+        return true;
+    }
+
+    return $user->can('class_attendance.correct')
+        && (
+            $user->inGroup('admin')
+            || $user->inGroup('waka')
+            || $user->inGroup('bk')
+        );
+}
+
+/**
  * Daily attendance monitoring is read-only for Admin, Principal, and Super Admin.
  */
 function can_monitor_daily_attendance(): bool

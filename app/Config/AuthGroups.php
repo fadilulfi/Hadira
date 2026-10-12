@@ -68,6 +68,7 @@ class AuthGroups extends ShieldAuthGroups
         'schedule.manage'            => 'Dapat mengelola jadwal pelajaran',
         'class_attendance.view'      => 'Dapat melihat absensi jam pelajaran',
         'class_attendance.manage'    => 'Dapat mengisi dan mengelola absensi jam pelajaran',
+        'class_attendance.correct'   => 'Dapat mengoreksi daftar hadir jam pelajaran yang tersimpan',
         'absence_monitoring.view'    => 'Dapat memantau kehadiran siswa',
         'permission.manage'          => 'Dapat mengelola izin/sakit siswa',
     ];
@@ -83,6 +84,7 @@ class AuthGroups extends ShieldAuthGroups
         'admin' => [
             'dashboard.view-admin', 'admin.access',
             'attendance.monitor', 'attendance.view',
+            'class_attendance.correct',
         ],
         'kepsek' => [
             'dashboard.view-admin', 'admin.access', 'attendance.monitor', 'attendance.view',
@@ -97,11 +99,12 @@ class AuthGroups extends ShieldAuthGroups
         ],
         'bk' => [
             'bk.access', 'schedule.view', 'class_attendance.view',
-            'absence_monitoring.view', 'permission.manage',
+            'class_attendance.correct', 'absence_monitoring.view', 'permission.manage',
         ],
         'waka' => [
             'waka.access', 'schedule.view', 'schedule.manage',
-            'class_attendance.view', 'absence_monitoring.view', 'permission.manage',
+            'class_attendance.view', 'class_attendance.correct',
+            'absence_monitoring.view', 'permission.manage',
         ],
     ];
 }

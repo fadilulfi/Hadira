@@ -118,10 +118,14 @@ class AbsensiKelas extends BaseController
             return redirect()->to(base_url('teacher/absensi-kelas'))->with('error', 'Jadwal tidak valid.');
         }
 
-        // Untuk MVP, absensi guru hanya bisa disimpan saat slot tersebut berlangsung.
-        if ($waktu < $schedule['jam_mulai'] || $waktu > $schedule['jam_selesai']) {
+        // Pengisian pertama hanya pada slot yang berlangsung. Jika sudah ada
+        // catatan tersimpan untuk jadwal dan tanggal ini, guru boleh mengoreksinya
+        // lagi sampai hari tersebut berakhir.
+        $existingAttendanceMap = $this->absensiModel->getMapForSession($idJadwal, $tanggal);
+        $insideSlot = $waktu >= $schedule['jam_mulai'] && $waktu <= $schedule['jam_selesai'];
+        if (empty($existingAttendanceMap) && !$insideSlot) {
             return redirect()->to(base_url('teacher/absensi-kelas/' . $idJadwal))
-                ->with('error', 'Absensi hanya dapat dilakukan pada jam pelajaran yang sedang berlangsung.');
+                ->with('error', 'Pengisian pertama hanya dapat dilakukan saat jam pelajaran berlangsung. Absensi yang sudah tersimpan dapat diperbarui selama hari ini.');
         }
 
         $students = $this->siswaModel->getSiswaByKelas((int) $schedule['id_kelas']);
@@ -131,8 +135,11 @@ class AbsensiKelas extends BaseController
 
         // Hanya terima siswa yang memang berada di kelas pada jadwal tersebut.
         $allowedStudentIds = [];
+        $studentNamesById = [];
         foreach ($students as $student) {
-            $allowedStudentIds[(int) $student['id_siswa']] = true;
+            $studentId = (int) $student['id_siswa'];
+            $allowedStudentIds[$studentId] = true;
+            $studentNamesById[$studentId] = (string) $student['nama_siswa'];
         }
 
         $rows = [];
@@ -164,8 +171,34 @@ class AbsensiKelas extends BaseController
                 ->with('error', 'Absensi gagal disimpan.');
         }
 
+        // Keep an audit trail for first saves and same-day edits.
+        $auditLogModel = new \App\Models\AuditLogModel();
+        $actorRole = user_role() ?? 'guru';
+        foreach ($rows as $row) {
+            $studentId = (int) $row['id_siswa'];
+            $old = $existingAttendanceMap[$studentId] ?? null;
+            $oldStatus = $old ? (int) $old['id_kehadiran'] : null;
+            $oldNote = $old ? (string) ($old['keterangan'] ?? '') : null;
+            $newStatus = (int) $row['id_kehadiran'];
+            $newNote = (string) ($row['keterangan'] ?? '');
+
+            if ($old && $oldStatus === $newStatus && $oldNote === $newNote) {
+                continue;
+            }
+
+            $auditLogModel->log(
+                ($old ? 'Koreksi' : 'Isi') . " absensi jam pelajaran ({$actorRole}): " . ($studentNamesById[$studentId] ?? "ID {$studentId}"),
+                'tb_absensi_pelajaran',
+                $old['id_absensi'] ?? null,
+                $old ? ['id_kehadiran' => $oldStatus, 'keterangan' => $oldNote] : null,
+                ['id_jadwal' => $idJadwal, 'tanggal' => $tanggal, 'id_kehadiran' => $newStatus, 'keterangan' => $newNote]
+            );
+        }
+
         return redirect()->to(base_url('teacher/absensi-kelas/' . $idJadwal))
-            ->with('success', 'Absensi kelas berhasil disimpan.');
+            ->with('success', empty($existingAttendanceMap)
+                ? 'Absensi berhasil disimpan ke database.'
+                : 'Perubahan absensi berhasil disimpan. Anda masih dapat mengoreksi daftar ini sampai hari ini berakhir.');
     }
 
     public function currentJson()

@@ -73,7 +73,10 @@
                                 <div class="today-row">
                                     <strong><?= esc($item['nama_mapel']) ?></strong><br>
                                     <small><?= esc($item['nama_kelas']) ?></small><br>
-                                    <small class="text-muted"><?= esc($item['nama_jam']) ?> · <?= esc(substr($item['jam_mulai'], 0, 5)) ?>–<?= esc(substr($item['jam_selesai'], 0, 5)) ?></small>
+                                    <small class="text-muted"><?= esc($item['nama_jam']) ?> · <?= esc(substr($item['jam_mulai'], 0, 5)) ?>–<?= esc(substr($item['jam_selesai'], 0, 5)) ?></small><br>
+                                    <a class="btn btn-sm btn-outline-primary mt-2" href="<?= base_url('teacher/absensi-kelas/' . $item['id_jadwal']) ?>">
+                                        <i class="material-icons">assignment_turned_in</i> Buka / Edit Absensi
+                                    </a>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>

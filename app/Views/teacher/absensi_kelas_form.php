@@ -26,6 +26,11 @@
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
         <?php endif; ?>
+        <?php if (!empty($attendanceMap)): ?>
+            <div class="alert alert-info">
+                Absensi untuk jam pelajaran ini sudah tersimpan. Perubahan berikutnya langsung memperbarui data dan dapat dilakukan kembali sampai hari ini berakhir.
+            </div>
+        <?php endif; ?>
 
         <div class="card session-card">
             <div class="card-header card-header-primary d-flex justify-content-between align-items-center">
@@ -101,7 +106,7 @@
 
                     <div class="text-right mt-3">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="material-icons">save</i> Simpan Absensi
+                            <i class="material-icons">save</i> <?= !empty($attendanceMap) ? 'Simpan Perubahan' : 'Simpan Absensi' ?>
                         </button>
                     </div>
                 </form>
