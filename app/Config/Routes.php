@@ -32,13 +32,22 @@ $routes->get('/', function () {
       return redirect()->to(base_url('bk/dashboard'));
    }
 
-   if (is_guru()) {
-      return redirect()->to(base_url('teacher/dashboard'));
+   // Monitoring roles take precedence over a secondary Guru group.
+   if ($user && $user->inGroup('admin')) {
+      return redirect()->to(base_url('admin/dashboard'));
+   }
+
+   if ($user && $user->inGroup('kepsek')) {
+      return redirect()->to(base_url('admin/dashboard'));
    }
 
    $role = user_role();
    if ($role === 'scanner') {
       return redirect()->to(base_url('scan'));
+   }
+
+   if (is_guru()) {
+      return redirect()->to(base_url('teacher/dashboard'));
    }
 
    return redirect()->to(base_url('admin'));
