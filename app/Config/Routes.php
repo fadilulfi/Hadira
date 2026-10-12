@@ -289,7 +289,7 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
 $routes->group('bk', ['filter' => 'permission:bk.access'], function (RouteCollection $routes) {
    $routes->get('', 'BK\Dashboard::index');
    $routes->get('dashboard', 'BK\Dashboard::index');
-   $routes->get('monitoring', 'BK\Dashboard::monitoring');
+   $routes->get('monitoring', 'ClassAttendance::index');
    $routes->get('perizinan', 'BK\Dashboard::perizinan');
    $routes->post('perizinan/status', 'BK\Dashboard::updatePermission');
    $routes->get('laporan', 'BK\Dashboard::laporan');

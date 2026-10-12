@@ -48,8 +48,7 @@ $guruMenu = [
 
 $bkMenu = [
     ['title' => 'Dashboard BK',          'url' => 'bk/dashboard',  'icon' => 'dashboard',        'context' => 'bk-dashboard'],
-    ['title' => 'Monitoring Kehadiran', 'url' => 'bk/monitoring', 'icon' => 'monitoring',       'context' => 'bk-monitoring'],
-    ['title' => 'Koreksi Absensi Jam',  'url' => 'class-attendance', 'icon' => 'fact_check',    'context' => 'class-attendance'],
+    ['title' => 'Monitoring Kehadiran', 'url' => 'class-attendance?source=bk', 'icon' => 'monitoring',       'context' => 'class-attendance'],
     ['title' => 'Data Izin & Sakit',    'url' => 'bk/perizinan',  'icon' => 'medical_services', 'context' => 'bk-perizinan'],
     ['title' => 'Rekap Kehadiran',      'url' => 'bk/laporan',    'icon' => 'assessment',       'context' => 'bk-laporan'],
 ];
@@ -60,7 +59,6 @@ $wakaMenu = [
     ['title' => 'Mata Pelajaran',      'url' => 'waka/mapel',      'icon' => 'menu_book',      'context' => 'waka-mapel'],
     ['title' => 'Jam Pelajaran',       'url' => 'waka/jam',        'icon' => 'schedule',       'context' => 'waka-jam'],
     ['title' => 'Monitoring Absensi',  'url' => 'waka/monitoring', 'icon' => 'monitoring',      'context' => 'waka-monitoring'],
-    ['title' => 'Koreksi Absensi Jam', 'url' => 'class-attendance', 'icon' => 'fact_check',     'context' => 'class-attendance'],
     ['title' => 'Data Izin & Sakit',   'url' => 'waka/perizinan', 'icon' => 'medical_services', 'context' => 'waka-perizinan'],
     ['title' => 'Rekap Absensi',       'url' => 'waka/laporan',    'icon' => 'assessment',      'context' => 'waka-laporan'],
 ];
@@ -78,7 +76,6 @@ $adminMenus = [
    ['title' => 'Data Kelas & Jurusan', 'url' => 'admin/kelas',              'icon' => 'school',     'context' => 'kelas',             'perm' => 'classes.manage'],
    ['title' => 'Generate QR Code',     'url' => 'admin/generate',           'icon' => 'qr_code',    'context' => 'admin-qr',          'perm' => 'qr.generate'],
    ['title' => 'Generate Laporan',     'url' => 'admin/laporan',            'icon' => 'print',      'context' => 'laporan',           'perm' => 'attendance.view'],
-   ['title' => 'Koreksi Absensi Jam',  'url' => 'class-attendance',          'icon' => 'fact_check', 'context' => 'class-attendance', 'perm' => 'class_attendance.correct'],
    ['title' => 'Data Petugas',         'url' => 'admin/petugas',             'icon' => 'computer',   'context' => 'petugas',            'perm' => 'petugas.manage'],
    ['title' => 'Pengaturan',           'url' => 'admin/general-settings',    'icon' => 'settings',   'context' => 'general_settings',  'perm' => 'settings.manage'],
    ['title' => 'Audit Log',            'url' => 'admin/audit-log',           'icon' => 'history',    'context' => 'audit-log',          'perm' => 'admin.access'],
@@ -90,7 +87,6 @@ $adminMonitoringMenus = [
    ['title' => 'Absensi Siswa',    'url' => 'admin/absen-siswa', 'icon' => 'checklist', 'context' => 'absen-siswa',      'perm' => 'attendance.monitor'],
    ['title' => 'Absensi Guru',     'url' => 'admin/absen-guru',  'icon' => 'checklist', 'context' => 'absen-guru',       'perm' => 'attendance.monitor'],
    ['title' => 'Generate Laporan', 'url' => 'admin/laporan',     'icon' => 'print',     'context' => 'laporan',          'perm' => 'attendance.view'],
-   ['title' => 'Koreksi Absensi Jam', 'url' => 'class-attendance', 'icon' => 'fact_check', 'context' => 'class-attendance', 'perm' => 'class_attendance.correct'],
 ];
 
 $adminItems = [];

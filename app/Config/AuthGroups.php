@@ -17,7 +17,7 @@ class AuthGroups extends ShieldAuthGroups
         ],
         'admin' => [
             'title'       => 'Admin Monitoring',
-            'description' => 'Memantau absensi dan membaca laporan tanpa mengubah catatan kehadiran.',
+            'description' => 'Memantau absensi harian dan dapat mengoreksi absensi jam pelajaran yang sudah tersimpan.',
         ],
         'kepsek' => [
             'title'       => 'Kepala Sekolah',
