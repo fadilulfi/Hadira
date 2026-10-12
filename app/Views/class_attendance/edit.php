@@ -43,7 +43,7 @@
                                     <th>Nama siswa</th>
                                     <th>Status</th>
                                     <th>Keterangan</th>
-                                    <th>Terakhir tersimpan</th>
+                                    <th>Waktu absen</th>
                                 </tr>
                             </thead>
                             <tbody>
