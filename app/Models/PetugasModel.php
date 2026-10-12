@@ -52,10 +52,19 @@ class PetugasModel extends Model
       $groupsByUser = $groupModel->getGroupsByUserIds($userIds);
 
       foreach ($users as &$user) {
-         $user['groups'] = $groupsByUser[$user['id']] ?? [];
+         $user['groups'] = array_values($groupsByUser[$user['id']] ?? []);
       }
+      unset($user);
 
-      return $users;
+      // A pure teacher account belongs in Data Guru, not in the Petugas list.
+      // Keep accounts that have any additional role (e.g. Guru + Waka/BK).
+      return array_values(array_filter($users, static function (array $user): bool {
+         $groups = $user['groups'] ?? [];
+         $hasGuruRole = in_array('guru', $groups, true);
+         $additionalRoles = array_diff($groups, ['guru', 'user']);
+
+         return !$hasGuruRole || $additionalRoles !== [];
+      }));
    }
 
    /**
