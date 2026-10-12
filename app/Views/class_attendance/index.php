@@ -20,6 +20,7 @@
         <div class="card">
             <div class="card-body">
                 <form method="get" action="<?= base_url('class-attendance') ?>" class="row align-items-end">
+                    <input type="hidden" name="source" value="<?= esc($source ?? 'admin') ?>">
                     <div class="col-md-3 mb-2">
                         <label for="tanggal">Tanggal absensi</label>
                         <input id="tanggal" name="tanggal" type="date" class="form-control" max="<?= esc(date('Y-m-d')) ?>" value="<?= esc($date) ?>" required>
@@ -83,7 +84,7 @@
                                     <td><?= esc($row['kelas_label']) ?></td>
                                     <td><?= (int) $row['terisi'] ?> / <?= (int) $row['total_siswa'] ?> siswa</td>
                                     <td>
-                                        <a class="btn btn-sm btn-outline-primary" href="<?= base_url('class-attendance/edit/' . (int) $row['id_jadwal'] . '?tanggal=' . rawurlencode($date)) ?>">
+                                        <a class="btn btn-sm btn-outline-primary" href="<?= base_url('class-attendance/edit/' . (int) $row['id_jadwal'] . '?tanggal=' . rawurlencode($date) . '&source=' . rawurlencode($source ?? 'admin')) ?>">
                                             <i class="material-icons">fact_check</i> Lihat / Koreksi
                                         </a>
                                     </td>
