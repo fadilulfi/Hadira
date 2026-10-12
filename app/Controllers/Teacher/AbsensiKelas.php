@@ -172,7 +172,7 @@ class AbsensiKelas extends BaseController
         }
 
         // Keep an audit trail for first saves and same-day edits.
-        $auditLogModel = new \\App\\Models\\AuditLogModel();
+        $auditLogModel = new \App\Models\AuditLogModel();
         $actorRole = user_role() ?? 'guru';
         foreach ($rows as $row) {
             $studentId = (int) $row['id_siswa'];
