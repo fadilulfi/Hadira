@@ -40,7 +40,7 @@ class SchoolDirectory extends BaseController
             return $denied;
         }
 
-        return $this->studentDirectory('waka/data-siswa');
+        return $this->studentDirectory('waka/data-siswa', 'waka-directory-siswa');
     }
 
     public function bkStudents()
@@ -49,7 +49,7 @@ class SchoolDirectory extends BaseController
             return $denied;
         }
 
-        return $this->studentDirectory('bk/data-siswa');
+        return $this->studentDirectory('bk/data-siswa', 'bk-directory-siswa');
     }
 
     public function wakaTeachers()
@@ -74,7 +74,7 @@ class SchoolDirectory extends BaseController
 
         return view('shared/directory', [
             'title' => 'Data Guru',
-            'ctx' => 'directory-guru',
+            'ctx' => 'waka-directory-guru',
             'directoryType' => 'guru',
             'listUrl' => base_url('waka/data-guru'),
             'keyword' => $keyword,
@@ -82,7 +82,7 @@ class SchoolDirectory extends BaseController
         ]);
     }
 
-    private function studentDirectory(string $listPath)
+    private function studentDirectory(string $listPath, string $context)
     {
         $keyword = trim((string) $this->request->getGet('q'));
 
@@ -117,7 +117,7 @@ class SchoolDirectory extends BaseController
 
         return view('shared/directory', [
             'title' => 'Data Siswa',
-            'ctx' => 'directory-siswa',
+            'ctx' => $context,
             'directoryType' => 'siswa',
             'listUrl' => base_url($listPath),
             'keyword' => $keyword,
