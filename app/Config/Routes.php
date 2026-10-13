@@ -290,6 +290,7 @@ $routes->group('bk', ['filter' => 'permission:bk.access'], function (RouteCollec
    $routes->get('', 'BK\Dashboard::index');
    $routes->get('dashboard', 'BK\Dashboard::index');
    $routes->get('monitoring', 'ClassAttendance::index');
+   $routes->get('data-siswa', 'SchoolDirectory::bkStudents');
    $routes->get('perizinan', 'BK\Dashboard::perizinan');
    $routes->post('perizinan/status', 'BK\Dashboard::updatePermission');
    $routes->get('laporan', 'BK\Dashboard::laporan');
@@ -301,6 +302,8 @@ $routes->group('bk', ['filter' => 'permission:bk.access'], function (RouteCollec
 $routes->group('waka', ['filter' => 'permission:waka.access'], function (RouteCollection $routes) {
    $routes->get('', 'Waka\Dashboard::index');
    $routes->get('dashboard', 'Waka\Dashboard::index');
+   $routes->get('data-guru', 'SchoolDirectory::wakaTeachers');
+   $routes->get('data-siswa', 'SchoolDirectory::wakaStudents');
    $routes->get('jadwal', 'Waka\Dashboard::jadwal');
    $routes->post('jadwal/simpan', 'Waka\Dashboard::jadwalSave');
    $routes->get('jadwal/toggle/(:num)', 'Waka\Dashboard::jadwalToggle/$1');
