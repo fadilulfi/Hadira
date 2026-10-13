@@ -49,12 +49,15 @@ $guruMenu = [
 $bkMenu = [
     ['title' => 'Dashboard BK',          'url' => 'bk/dashboard',  'icon' => 'dashboard',        'context' => 'bk-dashboard'],
     ['title' => 'Monitoring Kehadiran', 'url' => 'class-attendance?source=bk', 'icon' => 'monitoring',       'context' => 'class-attendance'],
+    ['title' => 'Data Siswa',             'url' => 'bk/data-siswa', 'icon' => 'school',           'context' => 'bk-directory-siswa'],
     ['title' => 'Data Izin & Sakit',    'url' => 'bk/perizinan',  'icon' => 'medical_services', 'context' => 'bk-perizinan'],
     ['title' => 'Rekap Kehadiran',      'url' => 'bk/laporan',    'icon' => 'assessment',       'context' => 'bk-laporan'],
 ];
 
 $wakaMenu = [
     ['title' => 'Dashboard Waka',      'url' => 'waka/dashboard',  'icon' => 'dashboard',       'context' => 'waka-dashboard'],
+    ['title' => 'Data Guru',            'url' => 'waka/data-guru', 'icon' => 'person_4',         'context' => 'waka-directory-guru'],
+    ['title' => 'Data Siswa',           'url' => 'waka/data-siswa', 'icon' => 'school',           'context' => 'waka-directory-siswa'],
     ['title' => 'Jadwal Pelajaran',    'url' => 'waka/jadwal',     'icon' => 'calendar_month', 'context' => 'waka-jadwal'],
     ['title' => 'Mata Pelajaran',      'url' => 'waka/mapel',      'icon' => 'menu_book',      'context' => 'waka-mapel'],
     ['title' => 'Jam Pelajaran',       'url' => 'waka/jam',        'icon' => 'schedule',       'context' => 'waka-jam'],

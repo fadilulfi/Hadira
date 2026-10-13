@@ -261,9 +261,10 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
    $routes->get('dashboard/live-stats', 'Teacher\Dashboard::getLiveStats');
    $routes->get('laporan', 'Teacher\Reports::index');
    $routes->post('laporan/generate', 'Teacher\Reports::generate');
-    $routes->get('qr', 'Teacher\QRCode::index');
-    $routes->get('qr/download', 'Teacher\QRCode::download');
-    $routes->get('qr/print', 'Teacher\QRCode::print');
+    // Keep the QR menu visible to teachers for now, but restrict the module itself to users with QR-generation permission.
+   $routes->get('qr', 'Teacher\QRCode::index', ['filter' => 'permission:qr.generate']);
+    $routes->get('qr/download', 'Teacher\QRCode::download', ['filter' => 'permission:qr.generate']);
+    $routes->get('qr/print', 'Teacher\QRCode::print', ['filter' => 'permission:qr.generate']);
    $routes->get('attendance', 'Teacher\Dashboard::attendance');
    $routes->get('attendance/(:any)', 'Teacher\Dashboard::attendance/$1');
    $routes->post('attendance/get-list', 'Teacher\Dashboard::getAttendanceList');
@@ -290,6 +291,7 @@ $routes->group('bk', ['filter' => 'permission:bk.access'], function (RouteCollec
    $routes->get('', 'BK\Dashboard::index');
    $routes->get('dashboard', 'BK\Dashboard::index');
    $routes->get('monitoring', 'ClassAttendance::index');
+   $routes->get('data-siswa', 'SchoolDirectory::bkStudents');
    $routes->get('perizinan', 'BK\Dashboard::perizinan');
    $routes->post('perizinan/status', 'BK\Dashboard::updatePermission');
    $routes->get('laporan', 'BK\Dashboard::laporan');
@@ -301,6 +303,8 @@ $routes->group('bk', ['filter' => 'permission:bk.access'], function (RouteCollec
 $routes->group('waka', ['filter' => 'permission:waka.access'], function (RouteCollection $routes) {
    $routes->get('', 'Waka\Dashboard::index');
    $routes->get('dashboard', 'Waka\Dashboard::index');
+   $routes->get('data-guru', 'SchoolDirectory::wakaTeachers');
+   $routes->get('data-siswa', 'SchoolDirectory::wakaStudents');
    $routes->get('jadwal', 'Waka\Dashboard::jadwal');
    $routes->post('jadwal/simpan', 'Waka\Dashboard::jadwalSave');
    $routes->get('jadwal/toggle/(:num)', 'Waka\Dashboard::jadwalToggle/$1');
