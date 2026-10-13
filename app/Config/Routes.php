@@ -261,9 +261,10 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
    $routes->get('dashboard/live-stats', 'Teacher\Dashboard::getLiveStats');
    $routes->get('laporan', 'Teacher\Reports::index');
    $routes->post('laporan/generate', 'Teacher\Reports::generate');
-    $routes->get('qr', 'Teacher\QRCode::index');
-    $routes->get('qr/download', 'Teacher\QRCode::download');
-    $routes->get('qr/print', 'Teacher\QRCode::print');
+    // Keep the QR menu visible to teachers for now, but restrict the module itself to users with QR-generation permission.
+   $routes->get('qr', 'Teacher\QRCode::index', ['filter' => 'permission:qr.generate']);
+    $routes->get('qr/download', 'Teacher\QRCode::download', ['filter' => 'permission:qr.generate']);
+    $routes->get('qr/print', 'Teacher\QRCode::print', ['filter' => 'permission:qr.generate']);
    $routes->get('attendance', 'Teacher\Dashboard::attendance');
    $routes->get('attendance/(:any)', 'Teacher\Dashboard::attendance/$1');
    $routes->post('attendance/get-list', 'Teacher\Dashboard::getAttendanceList');
