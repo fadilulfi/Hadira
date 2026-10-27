@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\KelasModel;
 use App\Models\SiswaModel;
 use App\Models\PresensiSiswaModel;
+use App\Models\PerizinanModel;
 use CodeIgniter\I18n\Time;
 
 use App\Models\KehadiranModel;
@@ -16,6 +17,7 @@ class Dashboard extends BaseController
     protected SiswaModel $siswaModel;
     protected PresensiSiswaModel $presensiSiswaModel;
     protected KehadiranModel $kehadiranModel;
+    protected PerizinanModel $perizinanModel;
 
     public function __construct()
     {
@@ -24,6 +26,7 @@ class Dashboard extends BaseController
         $this->siswaModel = new SiswaModel();
         $this->presensiSiswaModel = new PresensiSiswaModel();
         $this->kehadiranModel = new KehadiranModel();
+        $this->perizinanModel = new PerizinanModel();
     }
 
     public function index()
