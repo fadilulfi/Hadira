@@ -105,13 +105,31 @@ $adminMonitoringMenus = [
    ['title' => 'Generate Laporan', 'url' => 'admin/laporan',     'icon' => 'print',     'context' => 'laporan',          'perm' => 'attendance.view'],
 ];
 
-$adminItems = [];
-$adminSectionLabel = 'Administrasi';
+$adminMenuGroups = [
+    ['label' => 'Ringkasan', 'contexts' => ['admin-dashboard', 'audit-log']],
+    ['label' => 'Operasional Kehadiran', 'contexts' => ['scan-masuk', 'scan-pulang', 'absen-siswa', 'absen-guru', 'perizinan']],
+    ['label' => 'Data Akademik', 'contexts' => ['siswa', 'guru', 'kelas']],
+    ['label' => 'Laporan & QR', 'contexts' => ['admin-qr', 'laporan']],
+    ['label' => 'Sistem', 'contexts' => ['holiday', 'petugas', 'general_settings', 'backup']],
+];
+
+$adminSections = [];
 if ($isSuperAdmin) {
-    foreach ($adminMenus as $m) if ($user->can($m['perm'])) $adminItems[] = $m;
+    foreach ($adminMenuGroups as $group) {
+        $items = [];
+        foreach ($adminMenus as $menu) {
+            if (in_array($menu['context'], $group['contexts'], true) && $user->can($menu['perm'])) {
+                $items[] = $menu;
+            }
+        }
+        if ($items !== []) {
+            $adminSections[] = ['label' => $group['label'], 'items' => $items];
+        }
+    }
 } elseif ($isAdmin || $isKepsek) {
-    $adminSectionLabel = 'Monitoring Absensi';
-    foreach ($adminMonitoringMenus as $m) if ($user->can($m['perm'])) $adminItems[] = $m;
+    $items = [];
+    foreach ($adminMonitoringMenus as $menu) if ($user->can($menu['perm'])) $items[] = $menu;
+    if ($items !== []) $adminSections[] = ['label' => 'Monitoring Absensi', 'items' => $items];
 }
 
 if ($isSuperAdmin) {
@@ -163,9 +181,9 @@ if ($isSuperAdmin) {
          </li>
          <?php endforeach; ?>
 <?php endforeach; ?>
-<?php if ($adminItems !== []): ?>
-         <li class="nav-item"><p class="nav-link py-1"><?= esc($adminSectionLabel); ?></p></li>
-         <?php foreach ($adminItems as $item): ?>
+<?php foreach ($adminSections as $section): ?>
+         <li class="nav-item"><p class="nav-link py-1"><?= esc($section['label']); ?></p></li>
+         <?php foreach ($section['items'] as $item): ?>
          <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>">
                <i class="material-icons"><?= $item['icon']; ?></i>
@@ -173,8 +191,8 @@ if ($isSuperAdmin) {
             </a>
          </li>
          <?php endforeach; ?>
-<?php endif; ?>
-<?php if ($rolePanels === [] && $adminItems === [] && $isScanner): ?>
+<?php endforeach; ?>
+<?php if ($rolePanels === [] && $adminSections === [] && $isScanner): ?>
          <li class="nav-item <?= $context === 'scan' ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url('scan'); ?>" data-hadira-nav="true" data-nav-context="scan">
                <i class="material-icons">qr_code</i><p>Scan QR</p>
