@@ -1,8 +1,8 @@
 <?php
 
-namespace App\\Database\\Migrations;
+namespace App\Database\Migrations;
 
-use CodeIgniter\\Database\\Migration;
+use CodeIgniter\Database\Migration;
 use RuntimeException;
 
 class EnforceSingleWaliKelas extends Migration
@@ -22,11 +22,13 @@ class EnforceSingleWaliKelas extends Migration
             throw new RuntimeException('Penugasan Wali Kelas ganda ditemukan. Rapikan data kelas terlebih dahulu sebelum menjalankan migrasi ini.');
         }
 
-        $this->db->query('ALTER TABLE tb_kelas ADD CONSTRAINT uq_tb_kelas_wali_kelas UNIQUE (id_wali_kelas)');
+        // Forge supports both MySQL and the SQLite test database.
+        $this->forge->addUniqueKey('id_wali_kelas', 'uq_tb_kelas_wali_kelas');
+        $this->forge->processIndexes('tb_kelas');
     }
 
     public function down()
     {
-        $this->db->query('ALTER TABLE tb_kelas DROP INDEX uq_tb_kelas_wali_kelas');
+        $this->forge->dropKey('tb_kelas', 'uq_tb_kelas_wali_kelas');
     }
 }
