@@ -13,6 +13,7 @@ namespace App\Libraries\enums;
 enum UserRole: string
 {
   case Scanner     = 'scanner';
+  case Piket       = 'piket';
   case SuperAdmin  = 'superadmin';
   case Kepsek      = 'kepsek';
   case StafPetugas = 'admin';
@@ -25,6 +26,7 @@ enum UserRole: string
     self::Kepsek,
     self::StafPetugas,
     self::Scanner,
+    self::Piket,
     self::Guru,
     self::BK,
     self::Waka,
@@ -44,6 +46,7 @@ enum UserRole: string
   {
     return match ($this) {
       self::Scanner     => 'Scanner',
+      self::Piket       => 'Petugas Piket',
       self::SuperAdmin  => 'Super Admin',
       self::Kepsek      => 'Kepsek',
       self::StafPetugas => 'Staf Petugas',
