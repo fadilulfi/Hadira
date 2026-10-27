@@ -87,15 +87,21 @@ class KelasController extends BaseController
         if (!$this->validate(getValRules($val))) {
             $this->session->setFlashdata('errors', $val->getErrors());
             return redirect()->to('admin/kelas/tambah')->withInput();
-        } else {
-            if ($this->kelasModel->addKelas()) {
+        }
+
+        $waliGuruId = (int) inputPost('id_wali_kelas');
+        if ($waliGuruId > 0 && $this->kelasModel->waliKelasIsAssignedElsewhere($waliGuruId)) {
+            return redirect()->to('admin/kelas/tambah')->withInput()
+                ->with('errors', ['id_wali_kelas' => 'Guru ini sudah ditugaskan sebagai Wali Kelas di kelas lain.']);
+        }
+
+        if ($this->kelasModel->addKelas()) {
                 $this->session->setFlashdata('success', 'Tambah data berhasil');
                 return redirect()->to('admin/kelas');
-            } else {
-                $this->session->setFlashdata('error', 'Gagal menambah data');
-                return redirect()->to('admin/kelas/tambah')->withInput();
-            }
         }
+
+        $this->session->setFlashdata('error', 'Gagal menambah data');
+        return redirect()->to('admin/kelas/tambah')->withInput();
     }
 
     /**
@@ -132,15 +138,21 @@ class KelasController extends BaseController
         if (!$this->validate(getValRules($val))) {
             $this->session->setFlashdata('errors', $val->getErrors());
             return redirect()->back();
-        } else {
-            $id = inputPost('id');
-            if ($this->kelasModel->editKelas($id)) {
+        }
+
+        $id = (int) inputPost('id');
+        $waliGuruId = (int) inputPost('id_wali_kelas');
+        if ($waliGuruId > 0 && $this->kelasModel->waliKelasIsAssignedElsewhere($waliGuruId, $id)) {
+            return redirect()->back()->withInput()
+                ->with('errors', ['id_wali_kelas' => 'Guru ini sudah ditugaskan sebagai Wali Kelas di kelas lain.']);
+        }
+
+        if ($this->kelasModel->editKelas($id)) {
                 $this->session->setFlashdata('success', 'Edit data berhasil');
                 return redirect()->to('admin/kelas');
-            } else {
-                $this->session->setFlashdata('error', 'Gagal Mengubah data');
-            }
         }
+
+        $this->session->setFlashdata('error', 'Gagal Mengubah data');
         return redirect()->to('admin/kelas/edit/' . cleanNumber($id));
     }
 
