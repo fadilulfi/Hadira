@@ -18,7 +18,9 @@ class PerizinanModel extends Model
         'alasan',
         'bukti',
         'status',
-        'id_petugas'
+        'id_petugas',
+        'processed_role',
+        'processed_at'
     ];
 
     public function getPerizinanWithSiswa($status = null)
@@ -42,11 +44,19 @@ class PerizinanModel extends Model
         return $this->where('id_siswa', $id_siswa)->orderBy('created_at', 'DESC')->findAll();
     }
 
-    public function konfirmasiPerizinan($id_perizinan, $status, $id_petugas)
+    public function konfirmasiPerizinan($id_perizinan, $status, $id_petugas, ?string $processedRole = null)
     {
         $perizinan = $this->find($id_perizinan);
         if (!$perizinan) {
             return ['status' => 'error', 'message' => 'Data tidak ditemukan.'];
+        }
+
+        if ($perizinan['status'] !== 'Pending') {
+            return ['status' => 'error', 'message' => 'Perizinan ini sudah diproses dan tidak dapat diubah melalui alur ini.'];
+        }
+
+        if (!in_array($status, ['Disetujui', 'Ditolak'], true)) {
+            return ['status' => 'error', 'message' => 'Status perizinan tidak valid.'];
         }
 
         $db = \Config\Database::connect();
@@ -55,7 +65,9 @@ class PerizinanModel extends Model
         // Update status perizinan
         $this->update($id_perizinan, [
             'status' => $status,
-            'id_petugas' => $id_petugas
+            'id_petugas' => $id_petugas,
+            'processed_role' => $processedRole,
+            'processed_at' => date('Y-m-d H:i:s'),
         ]);
 
         if ($status === 'Disetujui') {
