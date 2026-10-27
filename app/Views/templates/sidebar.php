@@ -118,6 +118,7 @@ if ($isSuperAdmin) {
     $rolePanels = [
         ['label' => 'Panel Guru', 'items' => $guruMenu],
         ['label' => 'Panel BK', 'items' => $bkMenu],
+        ['label' => 'Panel Piket', 'items' => $piketMenu],
         ['label' => 'Panel Waka Kurikulum', 'items' => $wakaMenu],
     ];
 } elseif ($isBK) {
