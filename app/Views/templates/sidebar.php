@@ -61,14 +61,14 @@ $piketMenu = [
 $bkMenu = [
     ['title' => 'Dashboard BK',          'url' => 'bk/dashboard',  'icon' => 'dashboard',        'context' => 'bk-dashboard'],
     ['title' => 'Monitoring Kehadiran', 'url' => 'class-attendance?source=bk', 'icon' => 'monitoring',       'context' => 'class-attendance'],
-    ['title' => 'Data Siswa',             'url' => 'bk/data-siswa', 'icon' => 'school',           'context' => 'bk-directory-siswa'],
+    ['group' => 'Data Akademik', 'title' => 'Data Siswa',             'url' => 'bk/data-siswa', 'icon' => 'school',           'context' => 'bk-directory-siswa'],
     ['title' => 'Data Izin & Sakit',    'url' => 'bk/perizinan',  'icon' => 'medical_services', 'context' => 'bk-perizinan'],
     ['title' => 'Rekap Kehadiran',      'url' => 'bk/laporan',    'icon' => 'assessment',       'context' => 'bk-laporan'],
 ];
 
 $wakaMenu = [
     ['title' => 'Dashboard Waka',      'url' => 'waka/dashboard',  'icon' => 'dashboard',       'context' => 'waka-dashboard'],
-    ['title' => 'Data Guru',            'url' => 'waka/data-guru', 'icon' => 'person_4',         'context' => 'waka-directory-guru'],
+    ['group' => 'Data Akademik', 'title' => 'Data Guru',            'url' => 'waka/data-guru', 'icon' => 'person_4',         'context' => 'waka-directory-guru'],
     ['title' => 'Data Siswa',           'url' => 'waka/data-siswa', 'icon' => 'school',           'context' => 'waka-directory-siswa'],
     ['title' => 'Jadwal Pelajaran',    'url' => 'waka/jadwal',     'icon' => 'calendar_month', 'context' => 'waka-jadwal'],
     ['title' => 'Mata Pelajaran',      'url' => 'waka/mapel',      'icon' => 'menu_book',      'context' => 'waka-mapel'],
@@ -79,29 +79,29 @@ $wakaMenu = [
 ];
 
 $adminMenus = [
-   ['title' => 'Dashboard',            'url' => 'admin/dashboard',        'icon' => 'dashboard',  'context' => 'admin-dashboard',  'perm' => 'admin.access'],
-   ['title' => 'Absen Masuk',          'url' => 'scan/masuk',              'icon' => 'login',      'context' => 'scan-masuk',         'perm' => 'admin.access'],
-   ['title' => 'Absen Pulang',         'url' => 'scan/pulang',             'icon' => 'logout',     'context' => 'scan-pulang',        'perm' => 'admin.access'],
-   ['title' => 'Absensi Siswa',        'url' => 'admin/absen-siswa',      'icon' => 'checklist',  'context' => 'absen-siswa',       'perm' => 'attendance.edit'],
-   ['title' => 'Absensi Guru',         'url' => 'admin/absen-guru',       'icon' => 'checklist',  'context' => 'absen-guru',        'perm' => 'attendance.edit'],
-   ['title' => 'Data Perizinan',       'url' => 'admin/perizinan',        'icon' => 'mail',       'context' => 'perizinan',        'perm' => 'attendance.edit'],
-   ['title' => 'Hari Libur',           'url' => 'admin/holiday',          'icon' => 'event_busy', 'context' => 'holiday',           'perm' => 'settings.manage'],
+   ['group' => 'Ringkasan', 'title' => 'Dashboard',            'url' => 'admin/dashboard',        'icon' => 'dashboard',  'context' => 'admin-dashboard',  'perm' => 'admin.access'],
+   ['group' => 'Operasional Kehadiran', 'title' => 'Absen Masuk',          'url' => 'scan/masuk',              'icon' => 'login',      'context' => 'scan-masuk',         'perm' => 'admin.access'],
+   ['group' => 'Operasional Kehadiran', 'title' => 'Absen Pulang',         'url' => 'scan/pulang',             'icon' => 'logout',     'context' => 'scan-pulang',        'perm' => 'admin.access'],
+   ['group' => 'Operasional Kehadiran', 'title' => 'Absensi Siswa',        'url' => 'admin/absen-siswa',      'icon' => 'checklist',  'context' => 'absen-siswa',       'perm' => 'attendance.edit'],
+   ['group' => 'Operasional Kehadiran', 'title' => 'Absensi Guru',         'url' => 'admin/absen-guru',       'icon' => 'checklist',  'context' => 'absen-guru',        'perm' => 'attendance.edit'],
+   ['group' => 'Operasional Kehadiran', 'title' => 'Data Perizinan',       'url' => 'admin/perizinan',        'icon' => 'mail',       'context' => 'perizinan',        'perm' => 'attendance.edit'],
+   ['group' => 'Pengaturan Akademik', 'title' => 'Hari Libur',           'url' => 'admin/holiday',          'icon' => 'event_busy', 'context' => 'holiday',           'perm' => 'settings.manage'],
    ['title' => 'Data Siswa',           'url' => 'admin/siswa',             'icon' => 'person',     'context' => 'siswa',             'perm' => 'students.manage'],
    ['title' => 'Data Guru',            'url' => 'admin/guru',               'icon' => 'person_4',   'context' => 'guru',              'perm' => 'teachers.manage'],
-   ['title' => 'Data Kelas & Jurusan', 'url' => 'admin/kelas',              'icon' => 'school',     'context' => 'kelas',             'perm' => 'classes.manage'],
-   ['title' => 'Generate QR Code',     'url' => 'admin/generate',           'icon' => 'qr_code',    'context' => 'admin-qr',          'perm' => 'qr.generate'],
-   ['title' => 'Generate Laporan',     'url' => 'admin/laporan',            'icon' => 'print',      'context' => 'laporan',           'perm' => 'attendance.view'],
-   ['title' => 'Data Petugas',         'url' => 'admin/petugas',             'icon' => 'computer',   'context' => 'petugas',            'perm' => 'petugas.manage'],
-   ['title' => 'Pengaturan',           'url' => 'admin/general-settings',    'icon' => 'settings',   'context' => 'general_settings',  'perm' => 'settings.manage'],
-   ['title' => 'Audit Log',            'url' => 'admin/audit-log',           'icon' => 'history',    'context' => 'audit-log',          'perm' => 'admin.access'],
-   ['title' => 'Backup & Restore',     'url' => 'admin/backup',              'icon' => 'backup',     'context' => 'backup',             'perm' => 'backup.manage'],
+   ['group' => 'Data Akademik', 'title' => 'Data Kelas & Jurusan', 'url' => 'admin/kelas',              'icon' => 'school',     'context' => 'kelas',             'perm' => 'classes.manage'],
+   ['group' => 'Laporan & QR', 'title' => 'Generate QR Code',     'url' => 'admin/generate',           'icon' => 'qr_code',    'context' => 'admin-qr',          'perm' => 'qr.generate'],
+   ['group' => 'Laporan & QR', 'title' => 'Generate Laporan',     'url' => 'admin/laporan',            'icon' => 'print',      'context' => 'laporan',           'perm' => 'attendance.view'],
+   ['group' => 'Sistem', 'title' => 'Data Petugas',         'url' => 'admin/petugas',             'icon' => 'computer',   'context' => 'petugas',            'perm' => 'petugas.manage'],
+   ['group' => 'Sistem', 'title' => 'Pengaturan',           'url' => 'admin/general-settings',    'icon' => 'settings',   'context' => 'general_settings',  'perm' => 'settings.manage'],
+   ['group' => 'Ringkasan', 'title' => 'Audit Log',            'url' => 'admin/audit-log',           'icon' => 'history',    'context' => 'audit-log',          'perm' => 'admin.access'],
+   ['group' => 'Sistem', 'title' => 'Backup & Restore',     'url' => 'admin/backup',              'icon' => 'backup',     'context' => 'backup',             'perm' => 'backup.manage'],
 ];
 
 $adminMonitoringMenus = [
-   ['title' => 'Dashboard',        'url' => 'admin/dashboard',   'icon' => 'dashboard', 'context' => 'admin-dashboard', 'perm' => 'dashboard.view-admin'],
-   ['title' => 'Absensi Siswa',    'url' => 'admin/absen-siswa', 'icon' => 'checklist', 'context' => 'absen-siswa',      'perm' => 'attendance.monitor'],
-   ['title' => 'Absensi Guru',     'url' => 'admin/absen-guru',  'icon' => 'checklist', 'context' => 'absen-guru',       'perm' => 'attendance.monitor'],
-   ['title' => 'Generate Laporan', 'url' => 'admin/laporan',     'icon' => 'print',     'context' => 'laporan',          'perm' => 'attendance.view'],
+   ['group' => 'Monitoring', 'title' => 'Dashboard',        'url' => 'admin/dashboard',   'icon' => 'dashboard', 'context' => 'admin-dashboard', 'perm' => 'dashboard.view-admin'],
+   ['group' => 'Monitoring', 'title' => 'Absensi Siswa',    'url' => 'admin/absen-siswa', 'icon' => 'checklist', 'context' => 'absen-siswa',      'perm' => 'attendance.monitor'],
+   ['group' => 'Monitoring', 'title' => 'Absensi Guru',     'url' => 'admin/absen-guru',  'icon' => 'checklist', 'context' => 'absen-guru',       'perm' => 'attendance.monitor'],
+   ['group' => 'Laporan', 'title' => 'Generate Laporan', 'url' => 'admin/laporan',     'icon' => 'print',     'context' => 'laporan',          'perm' => 'attendance.view'],
 ];
 
 $adminItems = [];
@@ -164,7 +164,10 @@ if ($isSuperAdmin) {
 <?php endforeach; ?>
 <?php if ($adminItems !== []): ?>
          <li class="nav-item"><p class="nav-link py-1"><?= esc($adminSectionLabel); ?></p></li>
-         <?php foreach ($adminItems as $item): ?>
+         <?php $currentAdminGroup = null; foreach ($adminItems as $item): ?>
+         <?php if (($item['group'] ?? '') !== $currentAdminGroup): $currentAdminGroup = $item['group'] ?? ''; ?>
+         <li class="nav-item"><p class="nav-link py-1 text-uppercase small"><?= esc($currentAdminGroup); ?></p></li>
+         <?php endif; ?>
          <li class="nav-item <?= $context === $item['context'] ? 'active' : ''; ?>">
             <a class="nav-link font-weight-bold" href="<?= base_url($item['url']); ?>" data-hadira-nav="true" data-nav-context="<?= esc($item['context']); ?>">
                <i class="material-icons"><?= $item['icon']; ?></i>
