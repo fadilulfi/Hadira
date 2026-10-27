@@ -7,6 +7,8 @@ $isAdmin = $user && $user->inGroup('admin');
 $isGuru = $user && $user->inGroup('guru');
 $isBK   = $user && $user->inGroup('bk');
 $isWaka = $user && $user->inGroup('waka');
+$isPiket = $user && $user->inGroup('piket');
+$isWaliKelas = function_exists('is_wali_kelas') && is_wali_kelas();
 $isScanner = $user && $user->inGroup('scanner');
 $isKepsek = $user && $user->inGroup('kepsek');
 
@@ -31,6 +33,7 @@ if ($isSuperAdmin) {
 if ($isSuperAdmin) $roleLabel = 'Super Administrator';
 elseif ($isBK) $roleLabel = 'Guru BK';
 elseif ($isWaka) $roleLabel = 'Waka Kurikulum';
+elseif ($isPiket) $roleLabel = 'Petugas Piket';
 elseif ($isAdmin) $roleLabel = 'Admin Monitoring';
 elseif ($isGuru) $roleLabel = 'Guru';
 elseif ($isKepsek) $roleLabel = 'Kepala Sekolah';
@@ -44,6 +47,15 @@ $guruMenu = [
     ['title' => 'Pengajuan Izin',         'url' => 'teacher/perizinan',    'icon' => 'mail',           'context' => 'teacher-perizinan'],
     ['title' => 'Laporan Kelas',          'url' => 'teacher/laporan',      'icon' => 'print',          'context' => 'teacher-laporan'],
     ['title' => 'QR Code Siswa',           'url' => 'teacher/qr',           'icon' => 'qr_code',       'context' => 'teacher-qr'],
+];
+
+$waliKelasMenu = [
+    ['title' => 'Dashboard Wali Kelas', 'url' => 'teacher/wali-kelas', 'icon' => 'groups', 'context' => 'teacher-wali-kelas'],
+    ['title' => 'Perizinan Kelas', 'url' => 'teacher/perizinan', 'icon' => 'approval', 'context' => 'teacher-perizinan'],
+];
+
+$piketMenu = [
+    ['title' => 'Perizinan Siswa', 'url' => 'piket/perizinan', 'icon' => 'approval', 'context' => 'piket-perizinan'],
 ];
 
 $bkMenu = [
@@ -106,6 +118,7 @@ if ($isSuperAdmin) {
         ['label' => 'Panel Guru', 'items' => $guruMenu],
         ['label' => 'Panel BK', 'items' => $bkMenu],
         ['label' => 'Panel Waka Kurikulum', 'items' => $wakaMenu],
+        ['label' => 'Panel Piket', 'items' => $piketMenu],
     ];
 } elseif ($isBK) {
     $rolePanels = [['label' => 'Menu BK', 'items' => $bkMenu]];
@@ -113,8 +126,13 @@ if ($isSuperAdmin) {
     $rolePanels = [['label' => 'Menu Waka Kurikulum', 'items' => $wakaMenu]];
 } elseif ($isAdmin || $isKepsek) {
     $rolePanels = [];
+} elseif ($isPiket) {
+    $rolePanels = [['label' => 'Menu Piket', 'items' => $piketMenu]];
 } elseif ($isGuru) {
     $rolePanels = [['label' => 'Menu Guru', 'items' => $guruMenu]];
+    if ($isWaliKelas) {
+        $rolePanels[] = ['label' => 'Menu Wali Kelas', 'items' => $waliKelasMenu];
+    }
 } else {
     $rolePanels = [];
 }
