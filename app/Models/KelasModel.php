@@ -61,6 +61,27 @@ class KelasModel extends BaseModel
          ->get()->getRow();
    }
 
+   /**
+    * A teacher may be assigned as Wali Kelas for only one class.
+    * The database unique index is the final safeguard; this method supports
+    * a friendly validation error before the write is attempted.
+    */
+   public function waliKelasIsAssignedElsewhere(int $idGuru, ?int $exceptKelasId = null): bool
+   {
+      if ($idGuru <= 0) {
+         return false;
+      }
+
+      $query = $this->db->table('tb_kelas')
+         ->where('id_wali_kelas', $idGuru);
+
+      if ($exceptKelasId !== null && $exceptKelasId > 0) {
+         $query->where('id_kelas !=', $exceptKelasId);
+      }
+
+      return $query->countAllResults() > 0;
+   }
+
    public function getKelasByWali($id_guru)
    {
       return $this->builder->select('tb_kelas.*, tb_jurusan.jurusan, tb_guru.nama_guru as nama_wali_kelas, CONCAT(tb_kelas.tingkat, " ", tb_jurusan.jurusan, " ", tb_kelas.index_kelas) as kelas')
