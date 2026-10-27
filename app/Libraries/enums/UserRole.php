@@ -40,6 +40,7 @@ enum UserRole: string
     self::Guru,
     self::BK,
     self::Waka,
+    self::Piket,
   ];
 
   public function label(): string
