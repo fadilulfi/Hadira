@@ -285,6 +285,15 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
 
 
 // ═══════════════════════════════════════════
+// PIKET AREA
+// ═══════════════════════════════════════════
+$routes->group('piket', ['filter' => 'permission:piket.access'], function (RouteCollection $routes) {
+   $routes->get('', 'Piket\\Dashboard::index');
+   $routes->get('dashboard', 'Piket\\Dashboard::index');
+   $routes->post('perizinan/status', 'Piket\\Dashboard::updatePermission');
+});
+
+// ═══════════════════════════════════════════
 // BK AREA
 // ═══════════════════════════════════════════
 $routes->group('bk', ['filter' => 'permission:bk.access'], function (RouteCollection $routes) {
