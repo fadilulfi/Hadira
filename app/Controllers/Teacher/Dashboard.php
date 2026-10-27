@@ -52,7 +52,7 @@ class Dashboard extends BaseController
         // Basic stats
         $data = [
             'title' => 'Dashboard Wali Kelas',
-            'ctx' => 'teacher-dashboard',
+            'ctx' => 'wali-kelas-dashboard',
             'kelas' => $kelas,
             'summary' => [
                 'total_siswa' => $todayAttendance['total'],
@@ -95,6 +95,19 @@ class Dashboard extends BaseController
             ->findAll();
 
         $data['absenteeAlerts'] = $this->presensiSiswaModel->getConsecutiveAbsences(3, $kelas['id_kelas']);
+
+        $data['students'] = $this->siswaModel
+            ->where('id_kelas', $kelas['id_kelas'])
+            ->orderBy('nama_siswa', 'ASC')
+            ->findAll();
+
+        $data['pendingPermissions'] = $this->perizinanModel->db->table('tb_perizinan p')
+            ->select('p.*, s.nama_siswa, s.nis')
+            ->join('tb_siswa s', 's.id_siswa = p.id_siswa')
+            ->where('s.id_kelas', $kelas['id_kelas'])
+            ->where('p.status', 'Pending')
+            ->orderBy('p.created_at', 'DESC')
+            ->get()->getResultArray();
 
         return view('teacher/dashboard', $data);
     }
