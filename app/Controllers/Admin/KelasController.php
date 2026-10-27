@@ -84,15 +84,18 @@ class KelasController extends BaseController
         $val->setRule('index_kelas', 'Index', 'required|max_length[5]');
         $val->setRule('id_wali_kelas', 'Wali Kelas', 'permit_empty|numeric');
 
+        $isValid = $this->validate(getValRules($val));
         $waliId = (int) inputPost('id_wali_kelas');
         if ($waliId > 0 && !$this->guruModel->find($waliId)) {
             $val->setError('id_wali_kelas', 'Guru yang dipilih tidak ditemukan.');
+            $isValid = false;
         }
         if ($waliId > 0 && $this->kelasModel->isGuruAssignedAsWali($waliId)) {
             $val->setError('id_wali_kelas', 'Guru tersebut sudah ditugaskan sebagai Wali Kelas di kelas lain.');
+            $isValid = false;
         }
 
-        if (!$this->validate(getValRules($val)) || $val->hasError('id_wali_kelas')) {
+        if (!$isValid) {
             $this->session->setFlashdata('errors', $val->getErrors());
             return redirect()->to('admin/kelas/tambah')->withInput();
         } else {
@@ -138,15 +141,18 @@ class KelasController extends BaseController
         $val->setRule('index_kelas', 'Index', 'required|max_length[5]');
         $val->setRule('id_wali_kelas', 'Wali Kelas', 'permit_empty|numeric');
         $id = (int) inputPost('id');
+        $isValid = $this->validate(getValRules($val));
         $waliId = (int) inputPost('id_wali_kelas');
         if ($waliId > 0 && !$this->guruModel->find($waliId)) {
             $val->setError('id_wali_kelas', 'Guru yang dipilih tidak ditemukan.');
+            $isValid = false;
         }
         if ($waliId > 0 && $this->kelasModel->isGuruAssignedAsWali($waliId, $id)) {
             $val->setError('id_wali_kelas', 'Guru tersebut sudah ditugaskan sebagai Wali Kelas di kelas lain.');
+            $isValid = false;
         }
 
-        if (!$this->validate(getValRules($val)) || $val->hasError('id_wali_kelas')) {
+        if (!$isValid) {
             $this->session->setFlashdata('errors', $val->getErrors());
             return redirect()->back()->withInput();
         } else {
