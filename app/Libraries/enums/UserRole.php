@@ -19,6 +19,7 @@ enum UserRole: string
   case Guru        = 'guru';
   case BK          = 'bk';
   case Waka        = 'waka';
+  case Piket       = 'piket';
 
   public const ALL_ROLES = [
     self::SuperAdmin,
@@ -28,6 +29,7 @@ enum UserRole: string
     self::Guru,
     self::BK,
     self::Waka,
+    self::Piket,
   ];
 
   public const ALL_ROLES_WITH_GURU = [
@@ -50,6 +52,7 @@ enum UserRole: string
       self::Guru        => 'Guru',
       self::BK          => 'Guru BK',
       self::Waka        => 'Waka Kurikulum',
+      self::Piket       => 'Petugas Piket',
     };
   }
 
