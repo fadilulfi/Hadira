@@ -32,6 +32,10 @@ $routes->get('/', function () {
       return redirect()->to(base_url('bk/dashboard'));
    }
 
+   if ($user && $user->inGroup('piket')) {
+      return redirect()->to(base_url('piket/dashboard'));
+   }
+
    // Monitoring roles take precedence over a secondary Guru group.
    if ($user && $user->inGroup('admin')) {
       return redirect()->to(base_url('admin/dashboard'));
