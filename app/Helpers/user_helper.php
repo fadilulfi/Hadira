@@ -12,7 +12,7 @@ if (! function_exists('user')) {
 /**
  * Get the highest-priority role group for the current user.
  *
- * Priority: superadmin > admin > kepsek > waka > bk > scanner > guru
+ * Priority: superadmin > admin > kepsek > waka > bk > piket > scanner > guru
  * Monitoring roles take precedence over a secondary Guru group.
  */
 function user_role(): ?string
@@ -27,7 +27,7 @@ function user_role(): ?string
         return null;
     }
 
-    $priority = ['superadmin', 'admin', 'kepsek', 'waka', 'bk', 'scanner', 'guru'];
+    $priority = ['superadmin', 'admin', 'kepsek', 'waka', 'bk', 'piket', 'scanner', 'guru'];
 
     foreach ($priority as $group) {
         if (in_array($group, $groups, true)) {
