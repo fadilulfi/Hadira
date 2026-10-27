@@ -49,14 +49,28 @@ class PerizinanModel extends Model
             return ['status' => 'error', 'message' => 'Data tidak ditemukan.'];
         }
 
-        $db = \Config\Database::connect();
-        $db->transStart();
+        if ($perizinan['status'] !== 'Pending') {
+            return ['status' => 'error', 'message' => 'Pengajuan ini sudah diproses oleh petugas lain.'];
+        }
 
-        // Update status perizinan
-        $this->update($id_perizinan, [
-            'status' => $status,
-            'id_petugas' => $id_petugas
-        ]);
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        // Only the first actor may decide a pending request. This conditional
+        // update protects against simultaneous decisions from Piket and Wali Kelas.
+        $updated = $db->table($this->table)
+            ->where('id_perizinan', $id_perizinan)
+            ->where('status', 'Pending')
+            ->update([
+                'status' => $status,
+                'id_petugas' => $id_petugas,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        if (! $updated || $db->affectedRows() !== 1) {
+            $db->transRollback();
+            return ['status' => 'error', 'message' => 'Pengajuan ini sudah diproses oleh petugas lain.'];
+        }
 
         if ($status === 'Disetujui') {
             $id_kehadiran = ($perizinan['tipe_izin'] === 'Sakit') ? 2 : 3;
@@ -108,12 +122,12 @@ class PerizinanModel extends Model
             }
         }
 
-        $db->transComplete();
-
         if ($db->transStatus() === false) {
+            $db->transRollback();
             return ['status' => 'error', 'message' => 'Terjadi kesalahan sistem saat memperbarui presensi.'];
         }
 
+        $db->transCommit();
         return ['status' => 'success', 'message' => 'Status perizinan berhasil diperbarui.'];
     }
 }

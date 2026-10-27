@@ -210,4 +210,29 @@ final class KelasModelTest extends CIUnitTestCase
 
         $this->assertFalse($result);
     }
+
+    public function testWaliKelasAssignmentIsDetectedOutsideCurrentClass(): void
+    {
+        $this->db->table('tb_guru')->insert([
+            'nuptk' => uniqid('nuptk-', true),
+            'nama_guru' => 'Guru Wali Uji',
+            'jenis_kelamin' => 'L',
+            'alamat' => 'Alamat Uji',
+            'no_hp' => '08123456789',
+            'unique_code' => uniqid('guru-', true),
+        ]);
+        $guruId = (int) $this->db->insertID();
+
+        $this->db->table('tb_kelas')->insert([
+            'tingkat' => 'X',
+            'id_jurusan' => $this->testJurusanId,
+            'index_kelas' => '1',
+            'id_wali_kelas' => $guruId,
+        ]);
+        $kelasId = (int) $this->db->insertID();
+
+        $this->assertTrue($this->model->waliKelasIsAssignedElsewhere($guruId));
+        $this->assertFalse($this->model->waliKelasIsAssignedElsewhere($guruId, $kelasId));
+    }
+
 }

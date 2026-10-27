@@ -24,10 +24,19 @@ class Perizinan extends BaseController
         helper(['user_helper']);
     }
 
-    public function index()
+    private function assignedHomeroom(): ?array
     {
         $user = user();
-        $kelas = $this->kelasModel->getKelasByWali($user->id_guru);
+        if (!$user || empty($user->id_guru)) {
+            return null;
+        }
+
+        return $this->kelasModel->getKelasByWali($user->id_guru) ?: null;
+    }
+
+    public function index()
+    {
+        $kelas = $this->assignedHomeroom();
 
         if (empty($kelas)) {
             return view('teacher/perizinan/index', [
@@ -58,12 +67,29 @@ class Perizinan extends BaseController
 
     public function konfirmasi()
     {
-        $id_perizinan = request()->getPost('id_perizinan');
-        $status = request()->getPost('status');
-        $id_petugas = user_id();
+        $kelas = $this->assignedHomeroom();
+        if (!$kelas) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Anda bukan Wali Kelas yang ditugaskan.']);
+        }
 
-        $result = $this->perizinanModel->konfirmasiPerizinan($id_perizinan, $status, $id_petugas);
+        $idPerizinan = (int) request()->getPost('id_perizinan');
+        $status = (string) request()->getPost('status');
+        if ($idPerizinan <= 0 || !in_array($status, ['Disetujui', 'Ditolak'], true)) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'Data keputusan tidak valid.']);
+        }
 
+        $request = $this->perizinanModel->db->table('tb_perizinan p')
+            ->select('p.id_perizinan')
+            ->join('tb_siswa s', 's.id_siswa = p.id_siswa')
+            ->where('p.id_perizinan', $idPerizinan)
+            ->where('s.id_kelas', (int) $kelas['id_kelas'])
+            ->get()->getRowArray();
+
+        if (!$request) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Anda hanya dapat memproses izin siswa dari kelas wali Anda.']);
+        }
+
+        $result = $this->perizinanModel->konfirmasiPerizinan($idPerizinan, $status, (int) auth()->id());
         return $this->response->setJSON($result);
     }
 }

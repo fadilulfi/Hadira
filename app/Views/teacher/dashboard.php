@@ -148,6 +148,47 @@
                     </div>
                 </div>
 
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header card-header-primary">
+                            <h4 class="card-title">Siswa Kelas</h4>
+                            <p class="card-category"><?= esc($kelas['kelas']) ?></p>
+                        </div>
+                        <div class="card-body table-responsive">
+                            <table class="table table-hover">
+                                <thead class="text-primary"><tr><th>NIS</th><th>Nama Siswa</th><th>Poin</th></tr></thead>
+                                <tbody>
+                                <?php if (empty($students)): ?><tr><td colspan="3" class="text-center text-muted">Belum ada siswa.</td></tr><?php endif; ?>
+                                <?php foreach ($students as $student): ?>
+                                    <tr><td><?= esc($student['nis']) ?></td><td><?= esc($student['nama_siswa']) ?></td><td><?= esc($student['poin_pelanggaran'] ?? 0) ?></td></tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header card-header-warning">
+                            <h4 class="card-title">Izin Menunggu Keputusan</h4>
+                            <p class="card-category"><?= count($pendingPermissions) ?> pengajuan pending</p>
+                        </div>
+                        <div class="card-body table-responsive">
+                            <table class="table table-hover">
+                                <thead class="text-warning"><tr><th>Siswa</th><th>Tanggal</th><th>Jenis</th></tr></thead>
+                                <tbody>
+                                <?php if (empty($pendingPermissions)): ?><tr><td colspan="3" class="text-center text-muted">Tidak ada pengajuan pending.</td></tr><?php endif; ?>
+                                <?php foreach ($pendingPermissions as $permission): ?>
+                                    <tr><td><?= esc($permission['nama_siswa']) ?></td><td><?= esc($permission['tanggal_mulai']) ?></td><td><?= esc($permission['tipe_izin']) ?></td></tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer"><a class="btn btn-warning btn-sm" href="<?= base_url('teacher/perizinan') ?>">Kelola Perizinan</a></div>
+                    </div>
+                </div>
+
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header card-header-info">

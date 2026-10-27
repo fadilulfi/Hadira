@@ -20,6 +20,7 @@ class DataPetugas extends BaseController
       UserRole::Kepsek,
       UserRole::StafPetugas,
       UserRole::Scanner,
+      UserRole::Piket,
       UserRole::BK,
       UserRole::Waka,
    ];

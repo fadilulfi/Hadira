@@ -27,6 +27,10 @@ class AuthGroups extends ShieldAuthGroups
             'title'       => 'Scanner',
             'description' => 'Hanya dapat melakukan scan QR untuk presensi.',
         ],
+        'piket' => [
+            'title'       => 'Petugas Piket',
+            'description' => 'Menangani pengajuan izin dan sakit siswa.',
+        ],
         'guru' => [
             'title'       => 'Guru',
             'description' => 'Mengisi absensi kelas sesuai jadwal mengajar.',
@@ -59,6 +63,7 @@ class AuthGroups extends ShieldAuthGroups
         'settings.manage'            => 'Dapat mengelola pengaturan aplikasi',
         'backup.manage'              => 'Dapat melakukan backup dan restore',
         'teacher.access'             => 'Dapat mengakses dashboard guru/wali kelas',
+        'piket.access'               => 'Dapat mengakses panel petugas piket',
 
         // Role/panel baru.
         'guru.access'                => 'Dapat mengakses panel guru',
@@ -78,7 +83,7 @@ class AuthGroups extends ShieldAuthGroups
             'dashboard.view-admin',
             'admin.*', 'students.*', 'teachers.*', 'classes.*',
             'attendance.*', 'qr.*', 'petugas.*', 'settings.*', 'backup.*', 'scan.*',
-            'teacher.*', 'guru.*', 'bk.*', 'waka.*',
+            'teacher.*', 'guru.*', 'bk.*', 'waka.*', 'piket.*',
             'schedule.*', 'class_attendance.*', 'absence_monitoring.*', 'permission.*',
         ],
         'admin' => [
@@ -91,6 +96,9 @@ class AuthGroups extends ShieldAuthGroups
         ],
         'scanner' => [
             'admin.access', 'attendance.view', 'scan.access',
+        ],
+        'piket' => [
+            'piket.access', 'permission.manage',
         ],
         'guru' => [
             'guru.access', 'teacher.access', 'attendance.edit', 'attendance.view',

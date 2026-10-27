@@ -32,6 +32,10 @@ $routes->get('/', function () {
       return redirect()->to(base_url('bk/dashboard'));
    }
 
+   if ($user && $user->inGroup('piket')) {
+      return redirect()->to(base_url('piket/dashboard'));
+   }
+
    // Monitoring roles take precedence over a secondary Guru group.
    if ($user && $user->inGroup('admin')) {
       return redirect()->to(base_url('admin/dashboard'));
@@ -283,6 +287,15 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
    $routes->post('perizinan/konfirmasi', 'Teacher\Perizinan::konfirmasi');
 });
 
+
+// ═══════════════════════════════════════════
+// PIKET AREA
+// ═══════════════════════════════════════════
+$routes->group('piket', ['filter' => 'permission:piket.access'], function (RouteCollection $routes) {
+   $routes->get('', 'Piket\\Dashboard::index');
+   $routes->get('dashboard', 'Piket\\Dashboard::index');
+   $routes->post('perizinan/status', 'Piket\\Dashboard::updatePermission');
+});
 
 // ═══════════════════════════════════════════
 // BK AREA
