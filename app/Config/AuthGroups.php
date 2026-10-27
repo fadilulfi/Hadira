@@ -83,7 +83,7 @@ class AuthGroups extends ShieldAuthGroups
             'dashboard.view-admin',
             'admin.*', 'students.*', 'teachers.*', 'classes.*',
             'attendance.*', 'qr.*', 'petugas.*', 'settings.*', 'backup.*', 'scan.*',
-            'teacher.*', 'guru.*', 'bk.*', 'waka.*',
+            'teacher.*', 'guru.*', 'bk.*', 'waka.*', 'piket.*',
             'schedule.*', 'class_attendance.*', 'absence_monitoring.*', 'permission.*',
         ],
         'admin' => [
