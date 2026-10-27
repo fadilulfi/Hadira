@@ -22,6 +22,7 @@ class DataPetugas extends BaseController
       UserRole::Scanner,
       UserRole::BK,
       UserRole::Waka,
+      UserRole::Piket,
    ];
 
    protected PetugasModel $petugasModel;
