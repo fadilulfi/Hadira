@@ -32,6 +32,10 @@ $routes->get('/', function () {
       return redirect()->to(base_url('bk/dashboard'));
    }
 
+   if ($user && $user->inGroup('piket')) {
+      return redirect()->to(base_url('piket'));
+   }
+
    // Monitoring roles take precedence over a secondary Guru group.
    if ($user && $user->inGroup('admin')) {
       return redirect()->to(base_url('admin/dashboard'));
@@ -259,6 +263,9 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
    $routes->get('/', 'Teacher\GuruDashboard::index');
    $routes->get('dashboard', 'Teacher\GuruDashboard::index');
    $routes->get('dashboard/live-stats', 'Teacher\Dashboard::getLiveStats');
+   // Wali Kelas is an assignment on a Guru account, not a separate account or group.
+   $routes->get('wali-kelas', 'Teacher\Dashboard::index');
+   $routes->get('wali-kelas/live-stats', 'Teacher\Dashboard::getLiveStats');
    $routes->get('laporan', 'Teacher\Reports::index');
    $routes->post('laporan/generate', 'Teacher\Reports::generate');
     // Keep the QR menu visible to teachers for now, but restrict the module itself to users with QR-generation permission.
@@ -283,6 +290,15 @@ $routes->group('teacher', ['filter' => 'permission:teacher.access'], function (R
    $routes->post('perizinan/konfirmasi', 'Teacher\Perizinan::konfirmasi');
 });
 
+
+// ═══════════════════════════════════════════
+// PIKET AREA — handles school-wide student permit requests.
+// ═══════════════════════════════════════════
+$routes->group('piket', ['filter' => 'permission:piket.access'], function (RouteCollection $routes) {
+   $routes->get('', 'Piket\Dashboard::perizinan');
+   $routes->get('perizinan', 'Piket\Dashboard::perizinan');
+   $routes->post('perizinan/status', 'Piket\Dashboard::updatePermission');
+});
 
 // ═══════════════════════════════════════════
 // BK AREA
