@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\KelasModel;
 use App\Models\SiswaModel;
 use App\Models\PresensiSiswaModel;
+use App\Models\PerizinanModel;
 use CodeIgniter\I18n\Time;
 
 use App\Models\KehadiranModel;
@@ -16,6 +17,7 @@ class Dashboard extends BaseController
     protected SiswaModel $siswaModel;
     protected PresensiSiswaModel $presensiSiswaModel;
     protected KehadiranModel $kehadiranModel;
+    protected PerizinanModel $perizinanModel;
 
     public function __construct()
     {
@@ -24,13 +26,14 @@ class Dashboard extends BaseController
         $this->siswaModel = new SiswaModel();
         $this->presensiSiswaModel = new PresensiSiswaModel();
         $this->kehadiranModel = new KehadiranModel();
+        $this->perizinanModel = new PerizinanModel();
     }
 
     public function index()
     {
         $user = user();
-        if (!is_guru()) {
-            return redirect()->to('admin')->with('error', 'Anda bukan Guru.');
+        if (!$user || !$user->inGroup('guru') || !is_guru()) {
+            return redirect()->to('teacher/dashboard')->with('error', 'Dashboard Wali Kelas hanya tersedia untuk akun guru.');
         }
 
         // Get class where the teacher is Wali Kelas
@@ -95,6 +98,16 @@ class Dashboard extends BaseController
             ->findAll();
 
         $data['absenteeAlerts'] = $this->presensiSiswaModel->getConsecutiveAbsences(3, $kelas['id_kelas']);
+        $data['students'] = $this->siswaModel
+            ->where('id_kelas', $kelas['id_kelas'])
+            ->orderBy('nama_siswa', 'ASC')
+            ->findAll();
+        $data['pendingPermits'] = (int) $this->perizinanModel->db->table('tb_perizinan p')
+            ->join('tb_siswa s', 's.id_siswa = p.id_siswa')
+            ->where('s.id_kelas', $kelas['id_kelas'])
+            ->where('p.status', 'Pending')
+            ->countAllResults();
+        $data['liveStatsUrl'] = base_url('teacher/wali-kelas/live-stats');
 
         return view('teacher/dashboard', $data);
     }
@@ -102,6 +115,9 @@ class Dashboard extends BaseController
     public function getLiveStats()
     {
         $user = user();
+        if (!$user || !$user->inGroup('guru') || empty($user->id_guru)) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Akses Wali Kelas tidak diizinkan.']);
+        }
         $kelas = $this->kelasModel->getKelasByWali($user->id_guru);
         
         if (empty($kelas)) {

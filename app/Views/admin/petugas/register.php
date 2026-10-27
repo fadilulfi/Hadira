@@ -74,7 +74,7 @@
                                 <div class="invalid-feedback">
                                     <?= session('errors.role') ?>
                                 </div>
-                                <small class="form-text text-muted">Akun Guru murni dibuat melalui menu Data Guru. Menu ini untuk akun operasional seperti Super Admin, Staf Petugas, Scanner, Kepala Sekolah, BK, dan Waka.</small>
+                                <small class="form-text text-muted">Akun Guru murni dibuat melalui menu Data Guru. Menu ini untuk akun operasional seperti Super Admin, Staf Petugas, Scanner, Kepala Sekolah, BK, Waka, dan Piket.</small>
                             </div>
 
                             <button type="submit" class="btn btn-info btn-block mt-4"><?= lang('Auth.register') ?></button>

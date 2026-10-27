@@ -37,6 +37,7 @@ final class KelasModelTest extends CIUnitTestCase
         parent::tearDown();
         $this->db->table('tb_kelas')->delete('1 = 1');
         $this->db->table('tb_jurusan')->delete('1 = 1');
+        $this->db->table('tb_guru')->delete('1 = 1');
     }
 
     public function testGenerateCSVObjectSuccessfully(): void
@@ -192,6 +193,30 @@ final class KelasModelTest extends CIUnitTestCase
         $this->assertEquals('2', $result['data']['index_kelas']);
 
         @unlink($tmpDir . $txtFileName);
+    }
+
+    public function testWaliKelasAssignmentIsLimitedToOneClassPerGuru(): void
+    {
+        $this->db->table('tb_guru')->insert([
+            'nuptk' => uniqid('nuptk-', true),
+            'nama_guru' => 'Guru Wali Test',
+            'jenis_kelamin' => 'L',
+            'alamat' => 'Alamat Test',
+            'no_hp' => '08123456789',
+            'unique_code' => uniqid('guru-', true),
+        ]);
+        $guruId = (int) $this->db->insertID();
+
+        $this->db->table('tb_kelas')->insert([
+            'tingkat' => 'X',
+            'id_jurusan' => $this->testJurusanId,
+            'index_kelas' => 'A',
+            'id_wali_kelas' => $guruId,
+        ]);
+        $kelasId = (int) $this->db->insertID();
+
+        $this->assertTrue($this->model->isGuruAssignedAsWali($guruId));
+        $this->assertFalse($this->model->isGuruAssignedAsWali($guruId, $kelasId));
     }
 
     public function testGenerateCSVObjectWithEmptyFile(): void

@@ -150,6 +150,32 @@
 
                 <div class="col-md-12">
                     <div class="card">
+                        <div class="card-header card-header-primary">
+                            <h4 class="card-title"><b>Pengajuan Perizinan</b></h4>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">Ada <b><?= $pendingPermits ?></b> pengajuan izin atau sakit yang menunggu keputusan.</p>
+                            <a class="btn btn-primary btn-sm" href="<?= base_url('teacher/perizinan') ?>">Buka Perizinan Kelas</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header card-header-success">
+                            <h4 class="card-title">Siswa Kelas</h4>
+                        </div>
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm"><thead><tr><th>NIS</th><th>Nama Siswa</th></tr></thead><tbody>
+                            <?php foreach ($students as $student): ?><tr><td><?= esc($student['nis']) ?></td><td><?= esc($student['nama_siswa']) ?></td></tr><?php endforeach; ?>
+                            <?php if (!$students): ?><tr><td colspan="2" class="text-center text-muted">Belum ada siswa di kelas ini.</td></tr><?php endif; ?>
+                            </tbody></table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card">
                         <div class="card-header card-header-info">
                             <h4 class="card-title">Tingkat Kehadiran Kelas (7 Hari Terakhir)</h4>
                             <p class="card-category">Statistik kehadiran siswa per status</p>
@@ -297,7 +323,7 @@
             // Fitur Live Monitoring (Update setiap 10 detik)
             setInterval(function() {
                 $.ajax({
-                    url: "<?= base_url('teacher/dashboard/live-stats') ?>",
+                    url: "<?= esc($liveStatsUrl ?? base_url('teacher/wali-kelas/live-stats')) ?>",
                     type: "GET",
                     success: function(response) {
                         if ($('#hadirCount').length) {

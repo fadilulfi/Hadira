@@ -70,6 +70,22 @@ class KelasModel extends BaseModel
          ->get()->getRowArray();
    }
 
+   /**
+    * A teacher may be assigned as Wali Kelas for only one class.
+    * The optional class id keeps the current assignment valid while editing it.
+    */
+   public function isGuruAssignedAsWali(int $idGuru, ?int $exceptKelasId = null): bool
+   {
+      $query = $this->db->table('tb_kelas')
+         ->where('id_wali_kelas', $idGuru);
+
+      if ($exceptKelasId !== null) {
+         $query->where('id_kelas !=', $exceptKelasId);
+      }
+
+      return $query->countAllResults() > 0;
+   }
+
    public function getCategoryTree($categoryId, $categories)
    {
       $tree = array();

@@ -3,67 +3,104 @@
 namespace App\Controllers\Teacher;
 
 use App\Controllers\BaseController;
-use App\Models\PerizinanModel;
-use App\Models\PresensiSiswaModel;
-use App\Models\SiswaModel;
 use App\Models\KelasModel;
+use App\Models\PerizinanModel;
 
 class Perizinan extends BaseController
 {
-    protected $perizinanModel;
-    protected $presensiSiswaModel;
-    protected $siswaModel;
-    protected $kelasModel;
+    protected PerizinanModel $perizinanModel;
+    protected KelasModel $kelasModel;
 
     public function __construct()
     {
         $this->perizinanModel = new PerizinanModel();
-        $this->presensiSiswaModel = new PresensiSiswaModel();
-        $this->siswaModel = new SiswaModel();
         $this->kelasModel = new KelasModel();
         helper(['user_helper']);
     }
 
-    public function index()
+    /**
+     * Wali Kelas is an assignment on a Guru account. A request is never
+     * authorised from its submitted id alone: its student's class is checked.
+     */
+    private function assignedClass(): ?array
     {
         $user = user();
-        $kelas = $this->kelasModel->getKelasByWali($user->id_guru);
 
-        if (empty($kelas)) {
+        if (!$user || !$user->inGroup('guru') || empty($user->id_guru)) {
+            return null;
+        }
+
+        return $this->kelasModel->getKelasByWali((int) $user->id_guru) ?: null;
+    }
+
+    public function index()
+    {
+        $kelas = $this->assignedClass();
+
+        if (!$kelas) {
             return view('teacher/perizinan/index', [
-                'title' => 'Data Perizinan Siswa',
+                'title' => 'Perizinan Kelas',
                 'perizinan' => [],
                 'ctx' => 'teacher-perizinan',
-                'no_class' => true
+                'no_class' => true,
             ]);
         }
 
-        // Ambil perizinan khusus untuk siswa di kelas ini
-        $perizinan = $this->perizinanModel->db->table('tb_perizinan')
-            ->select('tb_perizinan.*, tb_siswa.nama_siswa, tb_siswa.nis, tb_kelas.tingkat, tb_jurusan.jurusan, tb_kelas.index_kelas')
-            ->join('tb_siswa', 'tb_siswa.id_siswa = tb_perizinan.id_siswa')
-            ->join('tb_kelas', 'tb_kelas.id_kelas = tb_siswa.id_kelas')
-            ->join('tb_jurusan', 'tb_jurusan.id = tb_kelas.id_jurusan')
-            ->where('tb_siswa.id_kelas', $kelas['id_kelas'])
-            ->orderBy('tb_perizinan.created_at', 'DESC')
-            ->get()->getResultArray();
+        $perizinan = $this->perizinanModel->db->table('tb_perizinan p')
+            ->select('p.*, s.nama_siswa, s.nis, k.tingkat, jr.jurusan, k.index_kelas')
+            ->join('tb_siswa s', 's.id_siswa = p.id_siswa')
+            ->join('tb_kelas k', 'k.id_kelas = s.id_kelas')
+            ->join('tb_jurusan jr', 'jr.id = k.id_jurusan')
+            ->where('s.id_kelas', $kelas['id_kelas'])
+            ->orderBy('p.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
 
-        $data = [
-            'title' => 'Data Perizinan Siswa',
+        return view('teacher/perizinan/index', [
+            'title' => 'Perizinan Kelas ' . $kelas['kelas'],
             'perizinan' => $perizinan,
-            'ctx' => 'teacher-perizinan'
-        ];
-        return view('teacher/perizinan/index', $data);
+            'ctx' => 'teacher-perizinan',
+        ]);
     }
 
     public function konfirmasi()
     {
-        $id_perizinan = request()->getPost('id_perizinan');
-        $status = request()->getPost('status');
-        $id_petugas = user_id();
+        $kelas = $this->assignedClass();
+        if (!$kelas) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Akses perizinan hanya tersedia untuk Wali Kelas yang ditugaskan.',
+            ]);
+        }
 
-        $result = $this->perizinanModel->konfirmasiPerizinan($id_perizinan, $status, $id_petugas);
+        $id = (int) $this->request->getPost('id_perizinan');
+        $status = (string) $this->request->getPost('status');
 
-        return $this->response->setJSON($result);
+        if (!$id || !in_array($status, ['Disetujui', 'Ditolak'], true)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'Permintaan perizinan tidak valid.',
+            ]);
+        }
+
+        $request = $this->perizinanModel->db->table('tb_perizinan p')
+            ->select('p.id_perizinan')
+            ->join('tb_siswa s', 's.id_siswa = p.id_siswa')
+            ->where('p.id_perizinan', $id)
+            ->where('p.status', 'Pending')
+            ->where('s.id_kelas', $kelas['id_kelas'])
+            ->get()
+            ->getRowArray();
+
+        if (!$request) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Pengajuan tidak ditemukan, sudah diproses, atau bukan milik kelas Anda.',
+            ]);
+        }
+
+        return $this->response->setJSON(
+            $this->perizinanModel->konfirmasiPerizinan($id, $status, auth()->id(), 'wali_kelas')
+        );
     }
 }

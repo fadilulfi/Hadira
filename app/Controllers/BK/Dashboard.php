@@ -129,12 +129,24 @@ class Dashboard extends BaseController
         if (!$id || !in_array($status, ['Disetujui', 'Ditolak'], true)) {
             return redirect()->back()->with('error', 'Permintaan tidak valid.');
         }
-        $this->db->table('tb_perizinan')->where('id_perizinan', $id)->update([
-            'status' => $status,
-            'id_petugas' => auth()->id(),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-        return redirect()->back()->with('success', 'Status perizinan berhasil diperbarui.');
+        $request = $this->db->table('tb_perizinan')
+            ->select('id_perizinan')
+            ->where('id_perizinan', $id)
+            ->where('status', 'Pending')
+            ->get()
+            ->getRowArray();
+
+        if (!$request) {
+            return redirect()->back()->with('error', 'Pengajuan tidak ditemukan atau sudah diproses.');
+        }
+
+        $result = (new \App\Models\PerizinanModel())
+            ->konfirmasiPerizinan($id, $status, auth()->id(), 'bk');
+
+        return redirect()->back()->with(
+            $result['status'] === 'success' ? 'success' : 'error',
+            $result['message']
+        );
     }
 
     public function laporan()

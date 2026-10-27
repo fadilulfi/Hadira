@@ -39,6 +39,10 @@ class AuthGroups extends ShieldAuthGroups
             'title'       => 'Waka Kurikulum',
             'description' => 'Mengelola jadwal pelajaran dan memantau pelaksanaan absensi kelas.',
         ],
+        'piket' => [
+            'title'       => 'Petugas Piket',
+            'description' => 'Menangani pengajuan izin dan sakit siswa.',
+        ],
     ];
 
     public array $permissions = [
@@ -64,6 +68,7 @@ class AuthGroups extends ShieldAuthGroups
         'guru.access'                => 'Dapat mengakses panel guru',
         'bk.access'                  => 'Dapat mengakses panel BK',
         'waka.access'                => 'Dapat mengakses panel Waka Kurikulum',
+        'piket.access'               => 'Dapat mengakses panel Piket',
         'schedule.view'              => 'Dapat melihat jadwal pelajaran',
         'schedule.manage'            => 'Dapat mengelola jadwal pelajaran',
         'class_attendance.view'      => 'Dapat melihat absensi jam pelajaran',
@@ -78,7 +83,7 @@ class AuthGroups extends ShieldAuthGroups
             'dashboard.view-admin',
             'admin.*', 'students.*', 'teachers.*', 'classes.*',
             'attendance.*', 'qr.*', 'petugas.*', 'settings.*', 'backup.*', 'scan.*',
-            'teacher.*', 'guru.*', 'bk.*', 'waka.*',
+            'teacher.*', 'guru.*', 'bk.*', 'waka.*', 'piket.*',
             'schedule.*', 'class_attendance.*', 'absence_monitoring.*', 'permission.*',
         ],
         'admin' => [
@@ -105,6 +110,9 @@ class AuthGroups extends ShieldAuthGroups
             'waka.access', 'schedule.view', 'schedule.manage',
             'class_attendance.view', 'class_attendance.correct',
             'absence_monitoring.view', 'permission.manage',
+        ],
+        'piket' => [
+            'piket.access', 'permission.manage',
         ],
     ];
 }
