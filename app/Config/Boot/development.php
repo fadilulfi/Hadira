@@ -31,6 +31,6 @@ defined('SHOW_DEBUG_BACKTRACE') || define('SHOW_DEBUG_BACKTRACE', true);
  */
 // Keep debug overlays and toolbar off by default so local presentation pages stay clean.
 // Set CI_DEBUG = true in .env when you need the CodeIgniter Debug Toolbar again.
-$debugSetting = env('CI_DEBUG', false);
+$debugSetting = $_ENV['CI_DEBUG'] ?? $_SERVER['CI_DEBUG'] ?? false;
 $debugEnabled = filter_var($debugSetting, FILTER_VALIDATE_BOOLEAN);
 defined('CI_DEBUG') || define('CI_DEBUG', $debugEnabled);
